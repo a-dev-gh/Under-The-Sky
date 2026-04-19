@@ -8,8 +8,7 @@ export class UIScene extends Phaser.Scene {
   create() {
     const game = this.scene.get("Game");
     this.game = game;
-    this.cameras.main.setBackgroundColor(0x000000);
-    this.cameras.main.setAlpha(1);
+    this.cameras.main.transparent = true;
 
     // Top bar: clock + phase + houses
     this.topBar = this.add.rectangle(0, 0, 10, 32, 0x0a0f20, 0.55).setOrigin(0, 0);
