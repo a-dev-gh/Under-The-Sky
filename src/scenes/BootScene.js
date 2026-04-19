@@ -39,14 +39,24 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
-    this.makeTiles();
-    this.makeTrees();
-    this.makeRocks();
-    this.makeResources();
-    this.makeBushes();
-    this.makeCharacters();
-    this.makeHouse();
-    this.makeGhostTile();
+    console.log("[Boot] start");
+    try {
+      this.makeTiles();
+      console.log("[Boot] tiles ok");
+      this.makeTrees();
+      this.makeRocks();
+      this.makeResources();
+      this.makeBushes();
+      console.log("[Boot] objects ok");
+      this.makeCharacters();
+      console.log("[Boot] characters ok");
+      this.makeHouse();
+      this.makeGhostTile();
+      console.log("[Boot] done, starting Game");
+    } catch (e) {
+      console.error("[Boot] crashed:", e);
+      throw e;
+    }
     this.scene.start("Game");
   }
 

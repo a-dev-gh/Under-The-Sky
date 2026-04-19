@@ -33,9 +33,42 @@
       }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+    <style>
+      #err {
+        position: fixed;
+        top: 40px;
+        left: 12px;
+        right: 12px;
+        padding: 10px 14px;
+        background: #a3202c;
+        color: #fff;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 12px;
+        white-space: pre-wrap;
+        z-index: 100000;
+        border-radius: 4px;
+        display: none;
+        max-height: 50vh;
+        overflow: auto;
+      }
+    </style>
   </head>
   <body>
     <div id="game"></div>
+    <div id="err"></div>
+    <script>
+      const errBox = document.getElementById("err");
+      function showErr(msg) {
+        errBox.style.display = "block";
+        errBox.textContent += msg + "\n\n";
+      }
+      window.addEventListener("error", (e) => {
+        showErr("ERROR: " + (e.message || e.error?.message) + "\n" + (e.error?.stack || ""));
+      });
+      window.addEventListener("unhandledrejection", (e) => {
+        showErr("UNHANDLED: " + (e.reason?.message || e.reason));
+      });
+    </script>
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>
