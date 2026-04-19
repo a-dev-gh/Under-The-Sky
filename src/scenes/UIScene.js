@@ -9,6 +9,7 @@ export class UIScene extends Phaser.Scene {
     const game = this.scene.get("Game");
     this.game = game;
     this.cameras.main.transparent = true;
+    this.cameras.main.setBackgroundColor("rgba(0,0,0,0)");
 
     // Top bar: clock + phase + houses
     this.topBar = this.add.rectangle(0, 0, 10, 32, 0x0a0f20, 0.55).setOrigin(0, 0);
