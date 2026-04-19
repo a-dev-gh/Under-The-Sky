@@ -7,6 +7,9 @@
       content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
     />
     <meta name="theme-color" content="#0b1020" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>Under the Sky</title>
     <style>
       html,
@@ -69,6 +72,9 @@
         showErr("UNHANDLED: " + (e.reason?.message || e.reason));
       });
     </script>
-    <script type="module" src="./src/main.js"></script>
+    <script type="module">
+      // cache-bust imports each page load
+      import(`./src/main.js?v=${Date.now()}`);
+    </script>
   </body>
 </html>
