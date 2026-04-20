@@ -195,8 +195,15 @@
         </div>
         <div class="row">
           <button id="add">Add to manifest</button>
+          <button id="addVariant" style="background:#3e9b4a">Add as variant</button>
           <button id="copy">Copy manifest JSON</button>
           <button id="clear" style="background:#a83c3c">Clear</button>
+        </div>
+        <div class="hint">
+          <strong>Add as variant</strong>: use this for alt grass / water / etc.
+          tiles of the same kind. The world will randomly pick one of the mapped
+          cells per tile so ground doesn't look repeating. Click "Add to manifest"
+          for the first cell, then "Add as variant" for each alternate.
         </div>
         <h2 style="margin-top: 16px">Current manifest</h2>
         <div class="hint">
@@ -323,6 +330,26 @@
         if (h > 1) entry.h = h;
         if (frames > 1) entry.frames = frames;
         manifest.mapping[keyInput.value] = entry;
+        render();
+      });
+      document.getElementById("addVariant").addEventListener("click", () => {
+        if (!hover) return;
+        const key = keyInput.value;
+        const existing = manifest.mapping[key];
+        if (!existing) {
+          alert(
+            `Add the first cell with "Add to manifest" before adding variants for ${key}.`,
+          );
+          return;
+        }
+        // Convert to variants[] if not already
+        if (!Array.isArray(existing.variants)) {
+          existing.variants = [[existing.x, existing.y]];
+          delete existing.x;
+          delete existing.y;
+        }
+        existing.variants.push([hover.x, hover.y]);
+        manifest.mapping[key] = existing;
         render();
       });
       document.getElementById("copy").addEventListener("click", () => {

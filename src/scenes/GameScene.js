@@ -19,6 +19,8 @@ import { Controls } from "../systems/Controls.js";
 import { DayNightCycle } from "../systems/DayNightCycle.js";
 import { BuildSystem } from "../systems/BuildSystem.js";
 import { loadSave, writeSave } from "../systems/Save.js";
+import { pickVariantKey } from "../systems/TilesetLoader.js";
+import { hashSeed } from "../systems/Seed.js";
 
 const TILE_KEYS = [
   "tile_grass",
@@ -46,6 +48,7 @@ export class GameScene extends Phaser.Scene {
     const savedBuildings = Array.isArray(saved?.buildings) ? saved.buildings : [];
 
     this.world = buildWorld(this.seedStr);
+    this._seedHash = hashSeed(this.seedStr);
     // Alias "map" for legacy code paths that reference blocked/spawn/objects.
     this.map = {
       ground: null, // not used directly anymore; chunks own their tiles
@@ -68,7 +71,10 @@ export class GameScene extends Phaser.Scene {
         for (let y = 0; y < CHUNK_ROWS; y++) {
           for (let x = 0; x < CHUNK_COLS; x++) {
             const id = chunk.ground[y][x];
-            rt.draw(TILE_KEYS[id], x * TILE, y * TILE);
+            const gx = cx * CHUNK_COLS + x;
+            const gy = cy * CHUNK_ROWS + y;
+            const key = pickVariantKey(TILE_KEYS[id], gx, gy, this._seedHash);
+            rt.draw(key, x * TILE, y * TILE);
           }
         }
         // Second pass: draw cliff-face overlays for pseudo-3D elevation.
