@@ -2,6 +2,7 @@
 // Later, drop real PNGs into /assets/sprites and load them here instead.
 
 import { TILE } from "../constants.js";
+import { preloadTileset, applyTilesetOverrides } from "../systems/TilesetLoader.js";
 
 function mulberry32(seed) {
   return () => {
@@ -38,6 +39,10 @@ export class BootScene extends Phaser.Scene {
     super("Boot");
   }
 
+  preload() {
+    preloadTileset(this);
+  }
+
   create() {
     console.log("[Boot] start");
     try {
@@ -58,6 +63,10 @@ export class BootScene extends Phaser.Scene {
       this.makeGeneralStore();
       this.makeGhostTile();
       this.makeIcons();
+      // If the user dropped assets/sprites/tileset.png + tileset.json, slice
+      // it now and override any procedural textures whose keys the manifest
+      // covers. Missing / empty manifest is fine — procedural stays.
+      applyTilesetOverrides(this);
       console.log("[Boot] done, starting Title");
     } catch (e) {
       console.error("[Boot] crashed:", e);

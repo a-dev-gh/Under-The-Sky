@@ -1,0 +1,5 @@
+{
+  "_comment": "Map cell coordinates in tileset.png to in-game texture keys. Drop the PNG next to this file, export at 2x in Piskel so cells are 32x32. Add entries one at a time — unmapped keys keep their procedural art.",
+  "cellSize": 32,
+  "mapping": {}
+}

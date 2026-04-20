@@ -71,18 +71,56 @@ assets/sprites/            # drop real PNGs here to replace placeholders
 
 ## Swapping in real pixel art
 
-The placeholders are generated in `src/scenes/BootScene.js`. To replace any of
-them with real art:
+Every sprite in the game has a canonical **texture key** (`tile_grass`,
+`obj_tree`, `build_house`, `char_player`, etc.). A procedural placeholder is
+drawn at boot for each key. You can override any of them with real pixel
+art without touching code.
 
-1. Drop a PNG into `assets/sprites/` (e.g. `tree.png`).
-2. In `BootScene.create()`, replace the corresponding `make*()` call with
-   `this.load.image("obj_tree", "assets/sprites/tree.png")` inside a `preload()`
-   method.
-3. Keep texture keys identical (`tile_grass`, `obj_tree`, `char_player`, etc.)
-   so the rest of the game works unchanged.
+### Fastest: drop a tileset PNG + a JSON manifest
 
-Character spritesheets use 4 frames (down, up, left, right — right is the left
-frame flipped at runtime), each 32×32, laid out horizontally.
+1. Save your tileset image at `assets/sprites/tileset.png`. For Piskel, export
+   at **2.0x scale** so each cell is 32×32 (matching the game's tile size).
+2. Open `assets/sprites/tileset.json` and fill in cell coordinates for each
+   key you want to replace. Example:
+
+   ```jsonc
+   {
+     "cellSize": 32,
+     "mapping": {
+       "tile_grass":     { "x": 3, "y": 1 },
+       "tile_water":     { "x": 8, "y": 0 },
+       "obj_tree":       { "x": 0, "y": 6, "w": 1, "h": 2 },
+       "build_house":    { "x": 5, "y": 0, "w": 3, "h": 3 },
+       "char_player":    { "x": 0, "y": 10, "w": 4, "h": 1, "frames": 4 }
+     }
+   }
+   ```
+
+   - `x` / `y` are the cell's **top-left** in the tileset (0-indexed).
+   - `w` / `h` default to 1 (units = cells).
+   - `frames` on a character entry registers a 4-direction framesheet.
+   - Any key you don't list keeps its procedural placeholder.
+
+3. Reload. That's it — the loader slices the PNG on boot and replaces the
+   procedural textures with the real ones.
+
+### Canonical texture keys
+
+- **Tiles** (32×32): `tile_grass`, `tile_grass_hill`, `tile_dirt`, `tile_sand`,
+  `tile_water`, `tile_stone`
+- **Cliff overlays** (32×32, transparent top, cliff face along one edge):
+  `cliff_south_1`, `cliff_south_2`, `cliff_east_1`, `cliff_east_2`
+- **Objects**: `obj_tree` (32×48), `obj_rock` (32×32), `obj_berry_bush`
+  (32×32), `res_wood` (32×32), `res_stone` (32×32)
+- **Animals**: `animal_rabbit` (16×16), `animal_deer` (24×24)
+- **Characters** (4 directions down/up/left/right as horizontal 4-frame sheet,
+  each frame 32×32): `char_player`, `char_npc_a`, `char_npc_b`, `char_npc_c`,
+  `char_npc_d`
+- **Buildings** (96×96): `build_house`, `build_town_point`, `build_cart_shop`,
+  `build_general_store`
+- **HUD icons** (16×16): `icon_wood`, `icon_stone`, `icon_food`, `icon_house`,
+  `icon_sword`
+- **Build ghosts** (96×96): `ghost_ok`, `ghost_bad`
 
 ## Roadmap
 
