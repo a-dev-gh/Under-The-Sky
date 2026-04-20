@@ -72,9 +72,6 @@
         showErr("UNHANDLED: " + (e.reason?.message || e.reason));
       });
     </script>
-    <script type="module">
-      // cache-bust imports each page load
-      import(`./src/main.js?v=${Date.now()}`);
-    </script>
+    <script type="module" src="./src/main.js"></script>
   </body>
 </html>

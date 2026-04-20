@@ -24,19 +24,18 @@ Playable MVP. Current features:
 
 ## Running locally
 
-Any static server works. Examples:
+Use the bundled no-cache dev server (important — `python3 -m http.server`
+returns `304 Not Modified` for ES modules, which causes browsers to keep
+running stale code after every edit):
 
 ```bash
-# Python
-python3 -m http.server 8000
-
-# Node (npx)
-npx serve .
-
-# Or just open index.html via a Live Server extension in VS Code
+python3 server.py
 ```
 
-Then open http://localhost:8000.
+Then open http://localhost:8000. Ctrl+C to stop.
+
+If you prefer not to use the bundled server, `npx http-server -c-1 -p 8000`
+works too.
 
 ## Controls
 
