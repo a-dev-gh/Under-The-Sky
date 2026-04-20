@@ -26,6 +26,15 @@ const TILE_COLORS = [
   0x7a7f85, // stone
 ];
 
+function shadeColor(rgb, pct) {
+  // pct in [-1, 1]. Negative = darker, positive = lighter.
+  const r = (rgb >> 16) & 0xff;
+  const g = (rgb >> 8) & 0xff;
+  const b = rgb & 0xff;
+  const adjust = (v) => Math.max(0, Math.min(255, Math.round(v * (1 + pct))));
+  return (adjust(r) << 16) | (adjust(g) << 8) | adjust(b);
+}
+
 export class UIScene extends Phaser.Scene {
   constructor() {
     super("UI");
@@ -406,7 +415,12 @@ export class UIScene extends Phaser.Scene {
             const id = chunk.ground[y][x];
             const gx = cx * CHUNK_COLS + x;
             const gy = cy * CHUNK_ROWS + y;
-            this.minimapTiles.fillStyle(TILE_COLORS[id], 1);
+            // Darken higher elevations so the minimap shows topography.
+            const e = chunk.elevation[y][x];
+            let color = TILE_COLORS[id];
+            if (e === 1) color = shadeColor(color, -0.15);
+            else if (e >= 2) color = shadeColor(color, -0.3);
+            this.minimapTiles.fillStyle(color, 1);
             this.minimapTiles.fillRect(
               2 + Math.floor(gx * sx),
               2 + Math.floor(gy * sy),

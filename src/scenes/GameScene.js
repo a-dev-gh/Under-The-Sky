@@ -10,6 +10,7 @@ import {
   WORLD_WIDTH,
   WORLD_HEIGHT,
   TILES,
+  worldElevationAt,
 } from "../world/World.js";
 import { Character, DIR } from "../entities/Character.js";
 import { NPC } from "../entities/NPC.js";
@@ -68,6 +69,35 @@ export class GameScene extends Phaser.Scene {
           for (let x = 0; x < CHUNK_COLS; x++) {
             const id = chunk.ground[y][x];
             rt.draw(TILE_KEYS[id], x * TILE, y * TILE);
+          }
+        }
+        // Second pass: draw cliff-face overlays for pseudo-3D elevation.
+        // A cliff is drawn on the raised tile's own cell, painting over its
+        // south / east side to show the cliff dropping to the lower neighbor.
+        for (let y = 0; y < CHUNK_ROWS; y++) {
+          for (let x = 0; x < CHUNK_COLS; x++) {
+            const gx = cx * CHUNK_COLS + x;
+            const gy = cy * CHUNK_ROWS + y;
+            const e = chunk.elevation[y][x];
+            if (e === 0) continue;
+            const southE = worldElevationAt(this.world, gx, gy + 1);
+            const eastE = worldElevationAt(this.world, gx + 1, gy);
+            if (southE < e) {
+              const drop = e - southE; // 1 or 2
+              rt.draw(
+                drop >= 2 ? "cliff_south_2" : "cliff_south_1",
+                x * TILE,
+                y * TILE,
+              );
+            }
+            if (eastE < e) {
+              const drop = e - eastE;
+              rt.draw(
+                drop >= 2 ? "cliff_east_2" : "cliff_east_1",
+                x * TILE,
+                y * TILE,
+              );
+            }
           }
         }
       }

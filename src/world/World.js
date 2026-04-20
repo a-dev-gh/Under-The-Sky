@@ -144,7 +144,20 @@ function newChunk() {
   const ground = Array.from({ length: CHUNK_ROWS }, () =>
     new Array(CHUNK_COLS).fill(TILES.GRASS),
   );
-  return { ground, objects: [], blocked: new Set() };
+  const elevation = Array.from({ length: CHUNK_ROWS }, () =>
+    new Array(CHUNK_COLS).fill(0),
+  );
+  return { ground, elevation, objects: [], blocked: new Set() };
+}
+
+// Read elevation across the world (returns 0 for out-of-bounds).
+export function worldElevationAt(world, gx, gy) {
+  if (gx < 0 || gy < 0 || gx >= WORLD_COLS || gy >= WORLD_ROWS) return 0;
+  const cx = Math.floor(gx / CHUNK_COLS);
+  const cy = Math.floor(gy / CHUNK_ROWS);
+  const lx = gx - cx * CHUNK_COLS;
+  const ly = gy - cy * CHUNK_ROWS;
+  return world.chunks[cy][cx].elevation[ly][lx];
 }
 
 // Add an object in WORLD coords; records blocked global tile too.
@@ -270,6 +283,47 @@ function drawStoneField(chunk, rng) {
 
 // -------- biome generators --------
 
+// After ground is generated, set elevation based on biome + ground. The
+// grass_hill tiles always become elevation 1, so existing visuals line up
+// with cliff faces. Mountains get most of their area elevated with peak
+// patches at elevation 2.
+function applyElevation(chunk, biome, rng) {
+  const elev = chunk.elevation;
+  if (biome === BIOMES.mountain) {
+    for (let y = 0; y < CHUNK_ROWS; y++) {
+      for (let x = 0; x < CHUNK_COLS; x++) {
+        const t = chunk.ground[y][x];
+        if (t === TILES.WATER) elev[y][x] = 0;
+        else elev[y][x] = 1;
+      }
+    }
+    // A few peak patches
+    for (let i = 0; i < 3; i++) {
+      const pcx = 4 + Math.floor(rng() * (CHUNK_COLS - 8));
+      const pcy = 3 + Math.floor(rng() * (CHUNK_ROWS - 6));
+      const rad = 2 + Math.floor(rng() * 2);
+      for (let dy = -rad; dy <= rad; dy++) {
+        for (let dx = -rad; dx <= rad; dx++) {
+          if (dx * dx + dy * dy <= rad * rad && rng() > 0.25) {
+            const gx = pcx + dx;
+            const gy = pcy + dy;
+            if (gx > 0 && gx < CHUNK_COLS - 1 && gy > 0 && gy < CHUNK_ROWS - 1) {
+              elev[gy][gx] = 2;
+            }
+          }
+        }
+      }
+    }
+  } else {
+    // Forest, plains, swamp: grass_hill tiles become elevation 1.
+    for (let y = 0; y < CHUNK_ROWS; y++) {
+      for (let x = 0; x < CHUNK_COLS; x++) {
+        if (chunk.ground[y][x] === TILES.GRASS_HILL) elev[y][x] = 1;
+      }
+    }
+  }
+}
+
 function genForest(seed, cx, cy) {
   const rng = mulberry32(seed);
   const chunk = newChunk();
@@ -296,6 +350,7 @@ function genForest(seed, cx, cy) {
   scatter(chunk, cx, cy, rng, "wood", 6);
   scatter(chunk, cx, cy, rng, "stone_pile", 4);
   scatter(chunk, cx, cy, rng, "berry", 8);
+  applyElevation(chunk, BIOMES.forest, rng);
   return chunk;
 }
 
@@ -308,6 +363,7 @@ function genLake(seed, cx, cy) {
   scatter(chunk, cx, cy, rng, "rock", 6);
   scatter(chunk, cx, cy, rng, "berry", 14);
   scatter(chunk, cx, cy, rng, "wood", 2);
+  applyElevation(chunk, BIOMES.lake, rng);
   return chunk;
 }
 
@@ -318,6 +374,7 @@ function genMountain(seed, cx, cy) {
   scatter(chunk, cx, cy, rng, "rock", 22);
   scatter(chunk, cx, cy, rng, "stone_pile", 14);
   scatter(chunk, cx, cy, rng, "tree", 8);
+  applyElevation(chunk, BIOMES.mountain, rng);
   return chunk;
 }
 
@@ -328,6 +385,7 @@ function genPlains(seed, cx, cy) {
   scatter(chunk, cx, cy, rng, "tree", 12);
   scatter(chunk, cx, cy, rng, "rock", 3);
   scatter(chunk, cx, cy, rng, "berry", 20);
+  applyElevation(chunk, BIOMES.plains, rng);
   return chunk;
 }
 
@@ -353,6 +411,7 @@ function genSwamp(seed, cx, cy) {
   scatter(chunk, cx, cy, rng, "tree", 70);
   scatter(chunk, cx, cy, rng, "rock", 5);
   scatter(chunk, cx, cy, rng, "berry", 6);
+  applyElevation(chunk, BIOMES.swamp, rng);
   return chunk;
 }
 

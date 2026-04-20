@@ -51,6 +51,7 @@ export class BootScene extends Phaser.Scene {
       this.makeCharacters();
       console.log("[Boot] characters ok");
       this.makeAnimals();
+      this.makeCliffs();
       this.makeHouse();
       this.makeTownPoint();
       this.makeCartShop();
@@ -463,6 +464,77 @@ export class BootScene extends Phaser.Scene {
       rect(ctx, 7, 13, 2, 2, "#4a2a14");
       tex.refresh();
     }
+  }
+
+  // ---- Cliff overlays for pseudo-3D elevation ----
+  // Each overlay is a 32x32 sprite that is mostly transparent; it renders on
+  // the raised tile and paints a short cliff face over the side that drops
+  // to a lower tile. Combining south + east overlays gives you an L-shaped
+  // corner for the SE corner of a plateau. Two elevation bands are shipped:
+  //   _1 = a 10 px-tall cliff (height step of one)
+  //   _2 = a 16 px-tall cliff (height step of two), for mountains
+  makeCliffs() {
+    const face = (x, y, w, h, seed, dark, mid, light, shadow) => {
+      const r = mulberry32(seed);
+      // Top edge: grass overhang
+      rect(this._cliffCtx, x, y, w, 1, "#2a5218");
+      // Main stone face
+      for (let row = 1; row < h - 1; row++) {
+        rect(this._cliffCtx, x, y + row, w, 1, mid);
+        for (let k = 0; k < Math.max(2, (w * h) / 12); k++) {
+          const rx = x + (r() * w) | 0;
+          const ry = y + 1 + (r() * (h - 2)) | 0;
+          px(this._cliffCtx, rx, ry, r() < 0.5 ? dark : light);
+        }
+      }
+      // Bottom shadow
+      rect(this._cliffCtx, x, y + h - 1, w, 1, shadow);
+    };
+
+    // South overlay, 1 band
+    {
+      const H = 10;
+      const { tex, ctx } = makeCanvas(this, "cliff_south_1", 32, 32);
+      this._cliffCtx = ctx;
+      face(0, 32 - H, 32, H, 11, "#4a2a14", "#6b3e21", "#8a5a2d", "#2a140a");
+      tex.refresh();
+    }
+    // South overlay, 2 band
+    {
+      const H = 16;
+      const { tex, ctx } = makeCanvas(this, "cliff_south_2", 32, 32);
+      this._cliffCtx = ctx;
+      face(0, 32 - H, 32, H, 12, "#3a2010", "#5c3620", "#7a5230", "#1a0804");
+      tex.refresh();
+    }
+    // East overlay, 1 band
+    {
+      const W = 10;
+      const { tex, ctx } = makeCanvas(this, "cliff_east_1", 32, 32);
+      this._cliffCtx = ctx;
+      face(32 - W, 0, W, 32, 21, "#4a2a14", "#6b3e21", "#8a5a2d", "#2a140a");
+      // Make the top pixel match grass overhang only on the top row
+      tex.refresh();
+    }
+    // East overlay, 2 band
+    {
+      const W = 16;
+      const { tex, ctx } = makeCanvas(this, "cliff_east_2", 32, 32);
+      this._cliffCtx = ctx;
+      face(32 - W, 0, W, 32, 22, "#3a2010", "#5c3620", "#7a5230", "#1a0804");
+      tex.refresh();
+    }
+    // North overlay (little shadow strip on lower tile's south edge, used
+    // subtly to hint at the bottom of a cliff; mostly decorative).
+    {
+      const { tex, ctx } = makeCanvas(this, "cliff_shadow_n", 32, 32);
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, 32, 3);
+      ctx.globalAlpha = 1;
+      tex.refresh();
+    }
+    this._cliffCtx = null;
   }
 
   makeTownPoint() {
