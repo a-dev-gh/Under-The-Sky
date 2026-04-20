@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Tileset Viewer · Under the Sky</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      html,
+      body {
+        margin: 0;
+        background: #0b1020;
+        color: #e6e6e6;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      header {
+        padding: 12px 16px;
+        background: #1a2540;
+        border-bottom: 1px solid #3a4a6a;
+      }
+      header h1 {
+        font-size: 16px;
+        margin: 0 0 4px 0;
+      }
+      header small {
+        color: #a8b0c8;
+      }
+      main {
+        display: flex;
+        gap: 16px;
+        padding: 16px;
+        align-items: flex-start;
+      }
+      #wrap {
+        position: relative;
+        display: inline-block;
+        outline: 1px solid #3a4a6a;
+      }
+      #canvas {
+        display: block;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        cursor: crosshair;
+      }
+      #overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+      }
+      #side {
+        flex: 1;
+        min-width: 300px;
+        max-width: 520px;
+      }
+      #side h2 {
+        font-size: 14px;
+        margin: 0 0 8px 0;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin: 6px 0;
+      }
+      label {
+        color: #a8b0c8;
+        font-size: 12px;
+        min-width: 80px;
+      }
+      input[type="number"],
+      input[type="text"],
+      select {
+        background: #1a2540;
+        color: #fff7c8;
+        border: 1px solid #3a4a6a;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+      }
+      button {
+        background: #2e5ba8;
+        color: #fff7c8;
+        border: 0;
+        padding: 6px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      button:hover {
+        background: #4070c0;
+      }
+      pre {
+        background: #0a0f20;
+        padding: 12px;
+        border-radius: 4px;
+        border: 1px solid #3a4a6a;
+        white-space: pre-wrap;
+        font-size: 12px;
+        max-height: 60vh;
+        overflow: auto;
+      }
+      .hint {
+        color: #a8b0c8;
+        font-size: 12px;
+        margin: 8px 0;
+      }
+      .err {
+        color: #f08080;
+        margin-top: 12px;
+      }
+      kbd {
+        background: #1a2540;
+        border: 1px solid #3a4a6a;
+        border-radius: 3px;
+        padding: 1px 6px;
+        font-family: ui-monospace, monospace;
+        font-size: 11px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Tileset viewer</h1>
+      <small>
+        Hover a cell to see its coordinates · click to add a mapping · adjust
+        the cell size if the grid doesn't line up with the art
+      </small>
+    </header>
+    <main>
+      <div id="wrap">
+        <canvas id="canvas"></canvas>
+        <canvas id="overlay"></canvas>
+      </div>
+      <aside id="side">
+        <h2>Settings</h2>
+        <div class="row">
+          <label>Cell size</label>
+          <input id="cellSize" type="number" value="32" min="8" max="128" />
+          <span class="hint">px per cell (32 for 2x Piskel exports)</span>
+        </div>
+        <div class="row">
+          <label>Tileset path</label>
+          <input id="path" type="text" value="assets/sprites/tileset.png" style="flex:1" />
+          <button id="reload">Reload</button>
+        </div>
+
+        <h2 style="margin-top: 16px">Add mapping</h2>
+        <div class="row">
+          <label>Cell</label>
+          <span id="coord" style="font-family:ui-monospace,monospace;color:#fff7c8">–</span>
+        </div>
+        <div class="row">
+          <label>Width</label>
+          <input id="w" type="number" value="1" min="1" max="10" style="width:60px" />
+          <label style="min-width:auto">Height</label>
+          <input id="h" type="number" value="1" min="1" max="10" style="width:60px" />
+          <label style="min-width:auto">Frames</label>
+          <input id="frames" type="number" value="1" min="1" max="8" style="width:60px" />
+        </div>
+        <div class="row">
+          <label>Game key</label>
+          <select id="key" style="flex:1">
+            <option value="tile_grass">tile_grass</option>
+            <option value="tile_grass_hill">tile_grass_hill</option>
+            <option value="tile_dirt">tile_dirt</option>
+            <option value="tile_sand">tile_sand</option>
+            <option value="tile_water">tile_water</option>
+            <option value="tile_stone">tile_stone</option>
+            <option value="obj_tree">obj_tree</option>
+            <option value="obj_rock">obj_rock</option>
+            <option value="obj_berry_bush">obj_berry_bush</option>
+            <option value="res_wood">res_wood</option>
+            <option value="res_stone">res_stone</option>
+            <option value="build_house">build_house</option>
+            <option value="build_town_point">build_town_point</option>
+            <option value="build_cart_shop">build_cart_shop</option>
+            <option value="build_general_store">build_general_store</option>
+            <option value="animal_rabbit">animal_rabbit</option>
+            <option value="animal_deer">animal_deer</option>
+            <option value="char_player">char_player</option>
+            <option value="char_npc_a">char_npc_a</option>
+            <option value="char_npc_b">char_npc_b</option>
+            <option value="char_npc_c">char_npc_c</option>
+            <option value="char_npc_d">char_npc_d</option>
+            <option value="icon_wood">icon_wood</option>
+            <option value="icon_stone">icon_stone</option>
+            <option value="icon_food">icon_food</option>
+            <option value="icon_house">icon_house</option>
+            <option value="icon_sword">icon_sword</option>
+            <option value="ghost_ok">ghost_ok</option>
+            <option value="ghost_bad">ghost_bad</option>
+          </select>
+        </div>
+        <div class="row">
+          <button id="add">Add to manifest</button>
+          <button id="copy">Copy manifest JSON</button>
+          <button id="clear" style="background:#a83c3c">Clear</button>
+        </div>
+        <h2 style="margin-top: 16px">Current manifest</h2>
+        <div class="hint">
+          When you're happy, copy this and paste it into
+          <kbd>assets/sprites/tileset.json</kbd>, then reload the game.
+        </div>
+        <pre id="json"></pre>
+        <div id="err" class="err"></div>
+      </aside>
+    </main>
+
+    <script>
+      const wrap = document.getElementById("wrap");
+      const canvas = document.getElementById("canvas");
+      const overlay = document.getElementById("overlay");
+      const ctx = canvas.getContext("2d");
+      const octx = overlay.getContext("2d");
+      const coordEl = document.getElementById("coord");
+      const jsonEl = document.getElementById("json");
+      const errEl = document.getElementById("err");
+      const cellInput = document.getElementById("cellSize");
+      const pathInput = document.getElementById("path");
+      const wInput = document.getElementById("w");
+      const hInput = document.getElementById("h");
+      const framesInput = document.getElementById("frames");
+      const keyInput = document.getElementById("key");
+
+      const manifest = { cellSize: 32, mapping: {} };
+      let img = null;
+      let hover = null; // {x,y}
+
+      function loadImg(src) {
+        errEl.textContent = "";
+        img = new Image();
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          overlay.width = img.width;
+          overlay.height = img.height;
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(img, 0, 0);
+          drawGrid();
+        };
+        img.onerror = () => {
+          errEl.textContent =
+            "Could not load " +
+            src +
+            ". Double-check the file exists at that path.";
+        };
+        img.src = src + "?t=" + Date.now();
+      }
+
+      function drawGrid() {
+        if (!img) return;
+        const cell = +cellInput.value || 32;
+        octx.clearRect(0, 0, overlay.width, overlay.height);
+        octx.lineWidth = 1;
+        octx.strokeStyle = "rgba(255,255,255,0.25)";
+        for (let x = 0; x <= img.width; x += cell) {
+          octx.beginPath();
+          octx.moveTo(x + 0.5, 0);
+          octx.lineTo(x + 0.5, img.height);
+          octx.stroke();
+        }
+        for (let y = 0; y <= img.height; y += cell) {
+          octx.beginPath();
+          octx.moveTo(0, y + 0.5);
+          octx.lineTo(img.width, y + 0.5);
+          octx.stroke();
+        }
+        if (hover) {
+          const w = (+wInput.value || 1) * cell;
+          const h = (+hInput.value || 1) * cell;
+          octx.strokeStyle = "#ffd84a";
+          octx.lineWidth = 2;
+          octx.strokeRect(hover.x * cell, hover.y * cell, w, h);
+        }
+        // Labels every 5 cells so it doesn't get noisy
+        octx.fillStyle = "rgba(255,247,200,0.75)";
+        octx.font = "11px ui-monospace, monospace";
+        for (let cx = 0; cx * cell < img.width; cx += 5) {
+          octx.fillText(cx, cx * cell + 2, 12);
+        }
+        for (let cy = 0; cy * cell < img.height; cy += 5) {
+          octx.fillText(cy, 2, cy * cell + 12);
+        }
+      }
+
+      canvas.addEventListener("mousemove", (e) => {
+        if (!img) return;
+        const rect = canvas.getBoundingClientRect();
+        const cell = +cellInput.value || 32;
+        const x = Math.floor(((e.clientX - rect.left) * canvas.width) / rect.width / cell);
+        const y = Math.floor(((e.clientY - rect.top) * canvas.height) / rect.height / cell);
+        hover = { x, y };
+        coordEl.textContent = `( ${x}, ${y} )`;
+        drawGrid();
+      });
+      canvas.addEventListener("mouseleave", () => {
+        hover = null;
+        coordEl.textContent = "–";
+        drawGrid();
+      });
+
+      cellInput.addEventListener("input", drawGrid);
+      wInput.addEventListener("input", drawGrid);
+      hInput.addEventListener("input", drawGrid);
+      document.getElementById("reload").addEventListener("click", () =>
+        loadImg(pathInput.value),
+      );
+
+      function render() {
+        manifest.cellSize = +cellInput.value || 32;
+        jsonEl.textContent = JSON.stringify(manifest, null, 2);
+      }
+
+      document.getElementById("add").addEventListener("click", () => {
+        if (!hover) return;
+        const entry = { x: hover.x, y: hover.y };
+        const w = +wInput.value || 1;
+        const h = +hInput.value || 1;
+        const frames = +framesInput.value || 1;
+        if (w > 1) entry.w = w;
+        if (h > 1) entry.h = h;
+        if (frames > 1) entry.frames = frames;
+        manifest.mapping[keyInput.value] = entry;
+        render();
+      });
+      document.getElementById("copy").addEventListener("click", () => {
+        navigator.clipboard.writeText(JSON.stringify(manifest, null, 2));
+      });
+      document.getElementById("clear").addEventListener("click", () => {
+        manifest.mapping = {};
+        render();
+      });
+
+      loadImg(pathInput.value);
+      render();
+    </script>
+  </body>
+</html>
