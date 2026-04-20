@@ -297,34 +297,42 @@ export class BootScene extends Phaser.Scene {
     rect(ctx, 14, 46, 68, 44, "#c8a672");
     // wood grain
     for (let y = 50; y < 88; y += 6) rect(ctx, 16, y, 64, 1, "#a8865c");
-    // roof
-    for (let i = 0; i < 30; i++) {
-      const w = 80 - i * 2;
-      const x = (W - w) / 2;
-      rect(ctx, x, 14 + i, w, 1, i < 4 ? "#1b1028" : "#a83c3c");
+    // roof: triangular, narrow peak at top, widest at the base meeting the walls
+    const roofH = 30;
+    const peakW = 4;
+    const baseW = 80;
+    for (let i = 0; i < roofH; i++) {
+      const t = i / (roofH - 1);
+      const w = Math.round(peakW + (baseW - peakW) * t);
+      const x = Math.round((W - w) / 2);
+      rect(ctx, x, 14 + i, w, 1, "#a83c3c");
+      // dark sloped edges
+      rect(ctx, x, 14 + i, 1, 1, "#1b1028");
+      rect(ctx, x + w - 1, 14 + i, 1, 1, "#1b1028");
     }
-    // roof highlight
-    for (let i = 4; i < 20; i += 3) {
-      const w = 80 - i * 2;
-      const x = (W - w) / 2;
-      rect(ctx, x + 2, 14 + i, w - 4, 1, "#c85050");
+    // roof highlight (thin pink band mid-slope on the left face)
+    for (let i = 6; i < roofH - 4; i += 3) {
+      const t = i / (roofH - 1);
+      const w = Math.round(peakW + (baseW - peakW) * t);
+      const x = Math.round((W - w) / 2);
+      rect(ctx, x + 2, 14 + i, Math.min(3, w - 4), 1, "#c85050");
     }
+    // base shadow under the roof eaves
+    rect(ctx, 8, 43, 80, 1, "#1b1028");
+    // chimney (sits on the right slope, sticks above)
+    rect(ctx, 60, 2, 10, 24, "#1b1028");
+    rect(ctx, 62, 4, 6, 22, "#7a7f85");
     // door
     rect(ctx, 42, 64, 12, 26, "#1b1028");
     rect(ctx, 44, 66, 8, 22, "#4a2a14");
     px(ctx, 50, 78, "#e0a93c"); // handle
     // windows
-    rect(ctx, 22, 54, 10, 10, "#1b1028");
-    rect(ctx, 24, 56, 6, 6, "#63a8d9");
-    rect(ctx, 27, 54, 1, 10, "#1b1028");
-    rect(ctx, 22, 58, 10, 1, "#1b1028");
-    rect(ctx, 64, 54, 10, 10, "#1b1028");
-    rect(ctx, 66, 56, 6, 6, "#63a8d9");
-    rect(ctx, 69, 54, 1, 10, "#1b1028");
-    rect(ctx, 64, 58, 10, 1, "#1b1028");
-    // chimney
-    rect(ctx, 66, 4, 10, 18, "#1b1028");
-    rect(ctx, 68, 6, 6, 16, "#7a7f85");
+    for (const wx of [22, 64]) {
+      rect(ctx, wx, 54, 10, 10, "#1b1028");
+      rect(ctx, wx + 2, 56, 6, 6, "#63a8d9");
+      rect(ctx, wx + 5, 54, 1, 10, "#1b1028");
+      rect(ctx, wx, 58, 10, 1, "#1b1028");
+    }
     tex.refresh();
   }
 

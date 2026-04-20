@@ -20,6 +20,7 @@ export class Character {
 
   setVelocity(vx, vy) {
     this.sprite.setVelocity(vx, vy);
+    const moving = vx !== 0 || vy !== 0;
     if (Math.abs(vx) > Math.abs(vy)) {
       if (vx > 0) this.face(DIR.RIGHT);
       else if (vx < 0) this.face(DIR.LEFT);
@@ -27,10 +28,15 @@ export class Character {
       if (vy > 0) this.face(DIR.DOWN);
       else this.face(DIR.UP);
     }
+    // walk-bob: shift texture up 1px every ~140ms while moving
+    const bob = moving
+      ? (Math.floor(this.scene.time.now / 140) % 2 === 0 ? 0 : -1)
+      : 0;
+    this.sprite.setDisplayOrigin(16, 16 + bob);
     this.sprite.setDepth(this.sprite.y);
     if (this.nameLabel) {
       this.nameLabel.x = this.sprite.x;
-      this.nameLabel.y = this.sprite.y - 26;
+      this.nameLabel.y = this.sprite.y - 26 + bob;
       this.nameLabel.setDepth(this.sprite.y + 1);
     }
   }
