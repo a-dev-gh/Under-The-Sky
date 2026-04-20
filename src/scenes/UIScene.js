@@ -1,4 +1,4 @@
-import { TILE } from "../main.js";
+import { TILE } from "../constants.js";
 import {
   WORLD_COLS,
   WORLD_ROWS,

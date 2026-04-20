@@ -11,7 +11,7 @@
 //   - At least 2 mountain chunks (guaranteed stone source).
 //   - Remaining chunks are a mix of forest / plains / swamp.
 
-import { TILE } from "../main.js";
+import { TILE } from "../constants.js";
 import { mulberry32, hashSeed } from "../systems/Seed.js";
 
 export const CHUNK_COLS = 48;

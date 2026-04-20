@@ -4,10 +4,7 @@ import { NewGameScene } from "./scenes/NewGameScene.js";
 import { CreditsScene } from "./scenes/CreditsScene.js";
 import { GameScene } from "./scenes/GameScene.js";
 import { UIScene } from "./scenes/UIScene.js";
-
-export const TILE = 32;
-export const MAP_COLS = 48;
-export const MAP_ROWS = 36;
+export { TILE } from "./constants.js";
 
 const config = {
   type: Phaser.AUTO,

@@ -1,7 +1,7 @@
 // Generates all placeholder sprites at boot via pixel-by-pixel canvas drawing.
 // Later, drop real PNGs into /assets/sprites and load them here instead.
 
-import { TILE } from "../main.js";
+import { TILE } from "../constants.js";
 
 function mulberry32(seed) {
   return () => {

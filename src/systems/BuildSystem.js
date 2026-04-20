@@ -1,4 +1,4 @@
-import { TILE } from "../main.js";
+import { TILE } from "../constants.js";
 
 // Place-a-house system. Press B to enter build mode, move ghost with mouse or
 // touch, click/tap to place if footprint is clear. House is 3x3 tiles.
