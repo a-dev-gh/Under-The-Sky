@@ -1,6 +1,9 @@
-import { BootScene } from "./scenes/BootScene.js";
-import { GameScene } from "./scenes/GameScene.js";
-import { UIScene } from "./scenes/UIScene.js";
+const V = Date.now();
+const [{ BootScene }, { GameScene }, { UIScene }] = await Promise.all([
+  import(`./scenes/BootScene.js?v=${V}`),
+  import(`./scenes/GameScene.js?v=${V}`),
+  import(`./scenes/UIScene.js?v=${V}`),
+]);
 
 export const TILE = 32;
 export const MAP_COLS = 48;
@@ -27,5 +30,4 @@ const config = {
   scene: [BootScene, GameScene, UIScene],
 };
 
-// eslint-disable-next-line no-new
 new Phaser.Game(config);
