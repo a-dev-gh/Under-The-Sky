@@ -42,7 +42,7 @@ export class GameScene extends Phaser.Scene {
     this.resumed = this.registry.get("resumed") || false;
     const saved = this.resumed ? loadSave() : null;
     this.resources = saved?.resources || { wood: 0, stone: 0, food: 0 };
-    const savedHouses = saved?.houses || [];
+    const savedBuildings = Array.isArray(saved?.buildings) ? saved.buildings : [];
 
     this.world = buildWorld(this.seedStr);
     // Alias "map" for legacy code paths that reference blocked/spawn/objects.
@@ -192,31 +192,46 @@ export class GameScene extends Phaser.Scene {
     this.build = new BuildSystem(this, {
       occupiedTiles: this.map.blocked,
       solids: this.solids,
-      onPlaced: (count, last) => {
-        this.registry.set("houses", count);
-        this.events.emit("housesChanged", count);
+      onPlaced: () => {
+        this.events.emit("buildingsChanged", this.build.buildings);
         this.saveGame();
       },
+      onCountChange: () => this.events.emit("buildingsChanged", this.build.buildings),
     });
-    // Rehydrate saved buildings (wrapped in try so one bad entry doesn't
-    // crash the whole scene startup on Continue).
-    for (const h of savedHouses) {
-      try {
-        if (typeof h?.gx === "number" && typeof h?.gy === "number") {
-          this.build.placeAt(h.gx, h.gy);
-        }
-      } catch (err) {
-        console.warn("[Game] skipped bad saved house", h, err);
-      }
-    }
 
-    this.input.keyboard.on("keydown-B", () => this.build.toggle());
+    // Rehydrate saved buildings OR auto-place the initial Town Point on a
+    // fresh game. Town Point always sits on the spawn dirt plaza.
+    if (savedBuildings.length > 0) {
+      for (const b of savedBuildings) {
+        try {
+          if (typeof b?.gx === "number" && typeof b?.gy === "number" && b?.type) {
+            this.build.placeAt(b.gx, b.gy, b.type);
+          }
+        } catch (err) {
+          console.warn("[Game] skipped bad saved building", b, err);
+        }
+      }
+    } else {
+      // First-time placement of the Town Point at the center of the spawn
+      // dirt plaza. Offset by -1 so the 3x3 footprint straddles the plaza.
+      const spawnGx = Math.floor(this.world.spawn.x / TILE) - 1;
+      const spawnGy = Math.floor(this.world.spawn.y / TILE) - 1;
+      this.build.placeAt(spawnGx, spawnGy, "town_point");
+    }
+    this.events.emit("buildingsChanged", this.build.buildings);
+
+    // Keyboard shortcuts: 1/2/3 select a buildable, B toggles build mode
+    // on the last-selected type, ESC cancels, M menu.
+    this.input.keyboard.on("keydown-B", () => this.build.toggle(this._lastBuildType || "house"));
+    this.input.keyboard.on("keydown-ONE", () => this.startBuild("house"));
+    this.input.keyboard.on("keydown-TWO", () => this.startBuild("cart_shop"));
+    this.input.keyboard.on("keydown-THREE", () => this.startBuild("general_store"));
     this.input.keyboard.on("keydown-ESC", () => {
       if (this.build.active) this.build.cancel();
+      else this.events.emit("closeBuildingPanel");
     });
     this.input.on("pointerdown", (pointer) => {
       if (!this.build.active) return;
-      // Ignore if clicking on an NPC (let NPC handler claim)
       const hits = this.input.manager.hitTest(
         pointer,
         this.npcs.map((n) => n.sprite),
@@ -226,7 +241,8 @@ export class GameScene extends Phaser.Scene {
       this.build.tryPlace();
     });
 
-    this.events.on("requestBuildToggle", () => this.build.toggle());
+    this.events.on("requestStartBuild", (typeKey) => this.startBuild(typeKey));
+    this.events.on("requestBuildToggle", () => this.build.toggle(this._lastBuildType || "house"));
     this.events.on("requestBuildConfirm", () => {
       if (this.build.active) this.build.tryPlace();
     });
@@ -259,9 +275,18 @@ export class GameScene extends Phaser.Scene {
       seed: this.seedStr,
       mapType: this.mapType,
       resources: this.resources,
-      houses: this.build.buildings.map((b) => ({ gx: b.gx, gy: b.gy })),
+      buildings: this.build.buildings.map((b) => ({
+        type: b.type,
+        gx: b.gx,
+        gy: b.gy,
+      })),
       savedAt: Date.now(),
     });
+  }
+
+  startBuild(typeKey) {
+    this._lastBuildType = typeKey;
+    this.build.start(typeKey);
   }
 
   claimNPC(npc) {

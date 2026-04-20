@@ -1,10 +1,10 @@
-// Thin localStorage wrapper for per-slot game state. Stores only what's
-// needed to reconstruct a session: group name, seed, map type, placed
-// buildings, resource counts, day count. Sprites / NPC positions are
-// regenerated from seed on load.
+// Per-slot save/load via localStorage. Schema versioned so older payloads
+// can be migrated or rejected cleanly.
 
-const KEY = "uts_save_v1";
+const KEY = "uts_save_v1"; // storage key kept for backwards compat
 const SETTINGS_KEY = "uts_settings_v1";
+
+const CURRENT_SAVE_VERSION = 2;
 
 export function hasSave() {
   try {
@@ -17,7 +17,9 @@ export function hasSave() {
 export function loadSave() {
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return migrateSave(parsed);
   } catch {
     return null;
   }
@@ -25,7 +27,8 @@ export function loadSave() {
 
 export function writeSave(state) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(state));
+    const payload = { v: CURRENT_SAVE_VERSION, ...state };
+    localStorage.setItem(KEY, JSON.stringify(payload));
     return true;
   } catch {
     return false;
@@ -35,7 +38,9 @@ export function writeSave(state) {
 export function clearSave() {
   try {
     localStorage.removeItem(KEY);
-  } catch {}
+  } catch {
+    /* noop */
+  }
 }
 
 export function loadSettings() {
@@ -50,5 +55,35 @@ export function loadSettings() {
 export function writeSettings(s) {
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
-  } catch {}
+  } catch {
+    /* noop */
+  }
+}
+
+// ------- migrations -------
+
+function migrateSave(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const v = raw.v || 1;
+  if (v === CURRENT_SAVE_VERSION) return raw;
+  if (v === 1) return migrateV1toV2(raw);
+  // Unknown future version — treat as no save.
+  return null;
+}
+
+// v1: { groupName, seed, mapType, resources, houses: [{gx,gy}] }
+// v2: adds `buildings: [{type, gx, gy}]`. Also v1 was generated against the
+// old 48x36 single-map coordinate system; those gx/gy don't mean anything in
+// the 5x5 world so we drop them rather than planting houses in wrong spots.
+function migrateV1toV2(raw) {
+  return {
+    v: 2,
+    groupName: raw.groupName,
+    seed: raw.seed,
+    mapType: raw.mapType || "forest",
+    resources: raw.resources || { wood: 0, stone: 0, food: 0 },
+    buildings: [], // legacy house coords are invalid in the new world
+    savedAt: raw.savedAt,
+    migrated: true,
+  };
 }

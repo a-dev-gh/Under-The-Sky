@@ -7,6 +7,7 @@ import {
   WORLD_CHUNKS_X,
   WORLD_CHUNKS_Y,
 } from "../world/World.js";
+import { BUILDING_TYPES, BUILDABLE_KEYS } from "../buildings/BuildingTypes.js";
 
 // HUD overlay: top bar, resource counters, minimap, touch joystick, build button.
 // Runs on top of GameScene; its camera is transparent so the world renders
@@ -99,21 +100,24 @@ export class UIScene extends Phaser.Scene {
     // --- Minimap (top-right, below top bar) ---
     this.makeMinimap();
 
-    // --- Bottom-right build buttons ---
-    this.buildBtn = this.add
-      .rectangle(0, 0, 96, 40, 0x2e5ba8, 0.9)
+    // --- Bottom-center build menu (one tab per buildable type) ---
+    this.makeBuildMenu();
+
+    // Cancel + Place buttons (visible only during active build mode).
+    this.cancelBtn = this.add
+      .rectangle(0, 0, 96, 40, 0xa83c3c, 0.9)
       .setOrigin(1, 1)
+      .setVisible(false)
       .setInteractive({ useHandCursor: true });
-    this.buildBtnLabel = this.add
-      .text(0, 0, "Build (B)", {
+    this.cancelLabel = this.add
+      .text(0, 0, "Cancel", {
         fontFamily: "system-ui, sans-serif",
         fontSize: "14px",
         color: "#fff7c8",
       })
-      .setOrigin(1, 1);
-    this.buildBtn.on("pointerdown", () => {
-      game.events.emit("requestBuildToggle");
-    });
+      .setOrigin(1, 1)
+      .setVisible(false);
+    this.cancelBtn.on("pointerdown", () => game.events.emit("requestBuildToggle"));
 
     this.confirmBtn = this.add
       .rectangle(0, 0, 96, 40, 0x3e9b4a, 0.9)
@@ -132,6 +136,9 @@ export class UIScene extends Phaser.Scene {
       game.events.emit("requestBuildConfirm");
     });
 
+    // --- Building info panel (shown when a placed building is clicked) ---
+    this.makeInfoPanel();
+
     // --- Virtual joystick (touch, bottom-left half of screen) ---
     this.joyBase = this.add.circle(0, 0, 52, 0x000000, 0.35).setVisible(false);
     this.joyKnob = this.add.circle(0, 0, 26, 0xf0e3c8, 0.7).setVisible(false);
@@ -143,7 +150,17 @@ export class UIScene extends Phaser.Scene {
         this.handleMinimapClick(pointer);
         return;
       }
-      if (pointer.x < this.scale.width * 0.45 && !this.joyActivePointer) {
+      // Joystick only activates in the left 40% of the screen AND above the
+      // bottom bar, so it doesn't conflict with the build menu / action
+      // buttons in the bottom strip.
+      const w = this.scale.width;
+      const h = this.scale.height;
+      if (
+        pointer.x < w * 0.4 &&
+        pointer.y < h - 90 &&
+        pointer.y > 40 &&
+        !this.joyActivePointer
+      ) {
         this.joyActivePointer = pointer;
         this.joyCenter = { x: pointer.x, y: pointer.y };
         this.joyBase.setPosition(pointer.x, pointer.y).setVisible(true);
@@ -169,7 +186,7 @@ export class UIScene extends Phaser.Scene {
       .text(
         this.scale.width / 2,
         this.scale.height - 70,
-        "WASD / touch-drag to move · Tap an NPC to claim · B to build · M for menu",
+        "WASD or drag to move · Tap an NPC to claim · 1/2/3 or bar below to build · Click a building for info · M = menu",
         {
           fontFamily: "system-ui, sans-serif",
           fontSize: "12px",
@@ -190,25 +207,179 @@ export class UIScene extends Phaser.Scene {
     this.layout();
     this.scale.on("resize", () => this.layout());
 
-    game.events.on("buildMode", (on) => {
+    game.events.on("buildMode", (on, typeKey) => {
       this.confirmBtn.setVisible(on);
       this.confirmLabel.setVisible(on);
-      this.buildBtnLabel.setText(on ? "Cancel" : "Build (B)");
+      this.cancelBtn.setVisible(on);
+      this.cancelLabel.setVisible(on);
+      this.highlightBuildSelection(on ? typeKey : null);
     });
-    game.events.on("housesChanged", () => this.refreshResources());
+    game.events.on("buildingsChanged", () => this.refreshResources());
+    game.events.on("buildingClicked", (record) => this.showInfoPanel(record));
+    game.events.on("closeBuildingPanel", () => this.hideInfoPanel());
 
     this.refreshResources();
     this.groupText.setText(game.groupName || "Your Group");
   }
 
+  // ---------- Building menu ----------
+  makeBuildMenu() {
+    this.buildMenuGroup = this.add.container(0, 0);
+    this.buildMenuButtons = {};
+
+    const itemW = 92;
+    const itemH = 54;
+
+    BUILDABLE_KEYS.forEach((key, i) => {
+      const type = BUILDING_TYPES[key];
+      const container = this.add.container(0, 0);
+      const bg = this.add
+        .rectangle(0, 0, itemW, itemH, 0x0a0f20, 0.85)
+        .setOrigin(0, 0)
+        .setStrokeStyle(1, 0x3a4a6a)
+        .setInteractive({ useHandCursor: true });
+      // Mini thumbnail of the building (shrunken texture image).
+      const thumb = this.add
+        .image(itemW / 2, itemH / 2 - 4, type.texture)
+        .setOrigin(0.5, 0.5)
+        .setScale(0.32);
+      const label = this.add
+        .text(itemW / 2, itemH - 8, `${i + 1}. ${type.name}`, {
+          fontFamily: "system-ui, sans-serif",
+          fontSize: "10px",
+          color: "#fff7c8",
+        })
+        .setOrigin(0.5, 1);
+      bg.on("pointerover", () => bg.setFillStyle(0x2a3454, 0.9));
+      bg.on("pointerout", () => {
+        if (this._activeBuildKey !== key) bg.setFillStyle(0x0a0f20, 0.85);
+      });
+      bg.on("pointerdown", () => this.game.events.emit("requestStartBuild", key));
+      container.add([bg, thumb, label]);
+      this.buildMenuGroup.add(container);
+      this.buildMenuButtons[key] = { container, bg, thumb, label };
+    });
+  }
+
+  highlightBuildSelection(activeKey) {
+    this._activeBuildKey = activeKey;
+    for (const [key, btn] of Object.entries(this.buildMenuButtons)) {
+      if (key === activeKey) {
+        btn.bg.setFillStyle(0x3e9b4a, 0.95);
+        btn.bg.setStrokeStyle(2, 0xb0e0b0);
+      } else {
+        btn.bg.setFillStyle(0x0a0f20, 0.85);
+        btn.bg.setStrokeStyle(1, 0x3a4a6a);
+      }
+    }
+  }
+
+  // ---------- Building info panel ----------
+  makeInfoPanel() {
+    this.infoPanel = this.add.container(0, 0).setVisible(false).setDepth(600);
+    const panelW = 260;
+    const panelH = 190;
+    const bg = this.add
+      .rectangle(0, 0, panelW, panelH, 0x0a0f20, 0.95)
+      .setOrigin(0, 0)
+      .setStrokeStyle(2, 0x6f90c8);
+    const close = this.add
+      .text(panelW - 10, 6, "✕", {
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "16px",
+        color: "#a8b0c8",
+      })
+      .setOrigin(1, 0)
+      .setInteractive({ useHandCursor: true });
+    close.on("pointerdown", () => this.hideInfoPanel());
+
+    this.infoThumb = this.add
+      .image(48, 56, "build_house")
+      .setOrigin(0.5, 0.5)
+      .setScale(0.55);
+
+    this.infoTitle = this.add
+      .text(92, 16, "", {
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "18px",
+        color: "#f0e3c8",
+        fontStyle: "bold",
+      })
+      .setOrigin(0, 0);
+    this.infoCapacity = this.add
+      .text(92, 42, "", {
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "12px",
+        color: "#a8b0c8",
+      })
+      .setOrigin(0, 0);
+    this.infoDesc = this.add
+      .text(12, 108, "", {
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "11px",
+        color: "#e6e6e6",
+        wordWrap: { width: panelW - 24 },
+      })
+      .setOrigin(0, 0);
+
+    this.upgradeBtn = this.add
+      .rectangle(panelW / 2, panelH - 20, 160, 28, 0x2a3454, 0.9)
+      .setOrigin(0.5, 0.5)
+      .setStrokeStyle(1, 0x3a4a6a);
+    this.upgradeLabel = this.add
+      .text(panelW / 2, panelH - 20, "Upgrade (coming soon)", {
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "11px",
+        color: "#6a7290",
+      })
+      .setOrigin(0.5, 0.5);
+
+    this.infoPanel.add([
+      bg,
+      close,
+      this.infoThumb,
+      this.infoTitle,
+      this.infoCapacity,
+      this.infoDesc,
+      this.upgradeBtn,
+      this.upgradeLabel,
+    ]);
+  }
+
+  showInfoPanel(record) {
+    const type = record.typeData;
+    this.infoThumb.setTexture(type.texture);
+    this.infoTitle.setText(type.name);
+    this.infoCapacity.setText(
+      `Capacity: ${record.occupants.length} / ${record.capacity}${type.tier ? `   ·   Tier ${type.tier}` : ""}`,
+    );
+    this.infoDesc.setText(type.description || "");
+    // Position panel centered-left of the screen, below the top bar.
+    this.infoPanel.setPosition(
+      Math.max(12, Math.min(this.scale.width - 272, this.scale.width / 2 - 130)),
+      54,
+    );
+    this.infoPanel.setVisible(true);
+    this._infoRecord = record;
+  }
+
+  hideInfoPanel() {
+    this.infoPanel.setVisible(false);
+    this._infoRecord = null;
+  }
+
   refreshResources() {
     const g = this.game;
     const r = g.resources || { wood: 0, stone: 0, food: 0 };
-    const houses = g.build?.buildings.length || 0;
+    const houses = g.build?.countOf("house") || 0;
     this.resIcons.wood.txt.setText(`${r.wood}`);
     this.resIcons.stone.txt.setText(`${r.stone}`);
     this.resIcons.food.txt.setText(`${r.food}`);
     this.resIcons.houses.txt.setText(`${houses}`);
+    if (this._infoRecord) {
+      // refresh capacity line if info panel is open
+      this.showInfoPanel(this._infoRecord);
+    }
   }
 
   // ---------- Minimap ----------
@@ -286,10 +457,22 @@ export class UIScene extends Phaser.Scene {
     const toMx = (wx) => 2 + Math.floor((wx / TILE) * sx);
     const toMy = (wy) => 2 + Math.floor((wy / TILE) * sy);
 
-    // Houses
-    g.fillStyle(0xa83c3c, 1);
+    // Buildings colored by type
+    const BUILDING_COLORS = {
+      town_point: 0xe0c98a,
+      house: 0xa83c3c,
+      cart_shop: 0xd08040,
+      general_store: 0x2e5ba8,
+    };
     for (const b of this.game.build.buildings) {
-      g.fillRect(toMx(b.gx * TILE), toMy(b.gy * TILE), Math.ceil(sx * 3), Math.ceil(sy * 3));
+      const c = BUILDING_COLORS[b.type] || 0xa83c3c;
+      g.fillStyle(c, 1);
+      g.fillRect(
+        toMx(b.gx * TILE),
+        toMy(b.gy * TILE),
+        Math.max(2, Math.ceil(sx * 3)),
+        Math.max(2, Math.ceil(sy * 3)),
+      );
     }
     // NPCs
     g.fillStyle(0xf0e3c8, 1);
@@ -368,7 +551,6 @@ export class UIScene extends Phaser.Scene {
     this.topBar.setSize(w, 40);
     this.menuBtn.setPosition(w - 12, 6);
     this.menuBtnLabel.setPosition(w - 12 - 12, 14);
-    // Layout resource icons centered horizontally.
     const order = ["wood", "stone", "food", "houses"];
     const slotW = 70;
     const totalW = slotW * order.length;
@@ -379,11 +561,26 @@ export class UIScene extends Phaser.Scene {
       txt.setPosition(startX + i * slotW + 24, 20);
     });
     if (this.minimap) this.minimap.setPosition(w - MINIMAP_W - 16, 48);
-    this.buildBtn.setPosition(w - 12, h - 12);
-    this.buildBtnLabel.setPosition(w - 12 - 12, h - 12 - 12);
+
+    // Build menu — horizontal row bottom-center, 92 px wide per item.
+    const keys = Object.keys(this.buildMenuButtons);
+    const itemW = 92;
+    const gap = 8;
+    const totalMenuW = keys.length * itemW + (keys.length - 1) * gap;
+    const menuX = w / 2 - totalMenuW / 2;
+    const menuY = h - 70;
+    keys.forEach((key, i) => {
+      const btn = this.buildMenuButtons[key];
+      btn.container.setPosition(menuX + i * (itemW + gap), menuY);
+    });
+
+    // Cancel + Place buttons (right side, appear in build mode)
+    this.cancelBtn.setPosition(w - 12, h - 12);
+    this.cancelLabel.setPosition(w - 12 - 30, h - 12 - 12);
     this.confirmBtn.setPosition(w - 12 - 106, h - 12);
     this.confirmLabel.setPosition(w - 12 - 106 - 30, h - 12 - 12);
-    if (this.hint) this.hint.setPosition(w / 2, h - 64);
+
+    if (this.hint) this.hint.setPosition(w / 2, menuY - 16);
   }
 
   update() {

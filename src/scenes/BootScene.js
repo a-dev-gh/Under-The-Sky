@@ -52,6 +52,9 @@ export class BootScene extends Phaser.Scene {
       console.log("[Boot] characters ok");
       this.makeAnimals();
       this.makeHouse();
+      this.makeTownPoint();
+      this.makeCartShop();
+      this.makeGeneralStore();
       this.makeGhostTile();
       this.makeIcons();
       console.log("[Boot] done, starting Title");
@@ -460,6 +463,163 @@ export class BootScene extends Phaser.Scene {
       rect(ctx, 7, 13, 2, 2, "#4a2a14");
       tex.refresh();
     }
+  }
+
+  makeTownPoint() {
+    const W = 96;
+    const H = 96;
+    const { tex, ctx } = makeCanvas(this, "build_town_point", W, H);
+    // shadow
+    rect(ctx, 8, 88, 80, 4, "rgba(0,0,0,0.3)");
+    // stone foundation
+    rect(ctx, 10, 58, 76, 30, "#1b1028");
+    rect(ctx, 12, 60, 72, 26, "#6a6c72");
+    for (let y = 62; y < 86; y += 4) {
+      for (let x = 14; x < 82; x += 8) {
+        rect(ctx, x + (y % 8 === 0 ? 0 : 4), y, 7, 3, "#5c6066");
+      }
+    }
+    // main round wooden hall (tan walls)
+    rect(ctx, 18, 38, 60, 24, "#1b1028");
+    rect(ctx, 20, 40, 56, 20, "#c8a672");
+    // wood grain
+    for (let y = 42; y < 58; y += 4) rect(ctx, 22, y, 52, 1, "#a8865c");
+    // door
+    rect(ctx, 42, 44, 12, 18, "#1b1028");
+    rect(ctx, 44, 46, 8, 16, "#4a2a14");
+    px(ctx, 50, 54, "#e0a93c");
+    // windows
+    rect(ctx, 26, 46, 8, 8, "#1b1028");
+    rect(ctx, 28, 48, 4, 4, "#63a8d9");
+    rect(ctx, 62, 46, 8, 8, "#1b1028");
+    rect(ctx, 64, 48, 4, 4, "#63a8d9");
+    // domed/stepped slate roof
+    for (let i = 0; i < 14; i++) {
+      const w = 66 - i * 4;
+      const x = Math.round((W - w) / 2);
+      const y = 24 + i;
+      if (w <= 4) break;
+      rect(ctx, x, y, w, 1, "#3c4048");
+      rect(ctx, x, y, 1, 1, "#1b1028");
+      rect(ctx, x + w - 1, y, 1, 1, "#1b1028");
+      if (i % 3 === 0) rect(ctx, x + 2, y, w - 4, 1, "#5c6066");
+    }
+    // flagpole
+    rect(ctx, 47, 2, 2, 20, "#1b1028");
+    rect(ctx, 48, 2, 1, 20, "#d0d8e0");
+    // flag (deep red pennant)
+    rect(ctx, 49, 4, 10, 6, "#1b1028");
+    rect(ctx, 49, 5, 9, 4, "#a83c3c");
+    rect(ctx, 49, 5, 9, 1, "#d06060");
+    tex.refresh();
+  }
+
+  makeCartShop() {
+    const W = 96;
+    const H = 96;
+    const { tex, ctx } = makeCanvas(this, "build_cart_shop", W, H);
+    // shadow
+    rect(ctx, 8, 88, 80, 4, "rgba(0,0,0,0.3)");
+    // walls
+    rect(ctx, 12, 44, 72, 48, "#1b1028");
+    rect(ctx, 14, 46, 68, 44, "#b88a5c");
+    for (let y = 50; y < 88; y += 6) rect(ctx, 16, y, 64, 1, "#8a6240");
+    // wide double-door (for carts) — darker, taller
+    rect(ctx, 38, 58, 20, 32, "#1b1028");
+    rect(ctx, 40, 60, 16, 30, "#4a2a14");
+    rect(ctx, 48, 60, 1, 30, "#1b1028"); // seam
+    px(ctx, 44, 74, "#e0a93c");
+    px(ctx, 52, 74, "#e0a93c");
+    // cart-wheel emblem on left wall
+    const wx = 24;
+    const wy = 56;
+    this.blob(ctx, wx, wy, 6, 6, "#1b1028");
+    this.blob(ctx, wx, wy, 5, 5, "#8a5a2d");
+    this.blob(ctx, wx, wy, 2, 2, "#1b1028");
+    // spokes
+    rect(ctx, wx, wy - 5, 1, 10, "#1b1028");
+    rect(ctx, wx - 5, wy, 10, 1, "#1b1028");
+    rect(ctx, wx - 4, wy - 4, 1, 1, "#1b1028");
+    rect(ctx, wx + 4, wy + 4, 1, 1, "#1b1028");
+    rect(ctx, wx - 4, wy + 4, 1, 1, "#1b1028");
+    rect(ctx, wx + 4, wy - 4, 1, 1, "#1b1028");
+    // window on right
+    rect(ctx, 64, 54, 10, 10, "#1b1028");
+    rect(ctx, 66, 56, 6, 6, "#63a8d9");
+    rect(ctx, 69, 54, 1, 10, "#1b1028");
+    rect(ctx, 64, 58, 10, 1, "#1b1028");
+    // brown (thatched) roof — triangular like house but brown
+    const roofH = 30;
+    for (let i = 0; i < roofH; i++) {
+      const t = i / (roofH - 1);
+      const w = Math.round(4 + (80 - 4) * t);
+      const x = Math.round((W - w) / 2);
+      rect(ctx, x, 14 + i, w, 1, "#8a5a2d");
+      rect(ctx, x, 14 + i, 1, 1, "#1b1028");
+      rect(ctx, x + w - 1, 14 + i, 1, 1, "#1b1028");
+      if (i % 3 === 0) rect(ctx, x + 2, 14 + i, Math.max(1, w - 4), 1, "#a8865c");
+    }
+    rect(ctx, 8, 43, 80, 1, "#1b1028");
+    // chimney
+    rect(ctx, 60, 4, 10, 20, "#1b1028");
+    rect(ctx, 62, 6, 6, 18, "#7a7f85");
+    tex.refresh();
+  }
+
+  makeGeneralStore() {
+    const W = 96;
+    const H = 96;
+    const { tex, ctx } = makeCanvas(this, "build_general_store", W, H);
+    // shadow
+    rect(ctx, 6, 88, 84, 4, "rgba(0,0,0,0.3)");
+    // main body (wider, lower eaves than house)
+    rect(ctx, 8, 50, 80, 42, "#1b1028");
+    rect(ctx, 10, 52, 76, 38, "#d0b080");
+    for (let y = 58; y < 88; y += 6) rect(ctx, 12, y, 72, 1, "#a8865c");
+    // roof: nearly flat gable
+    const roofH = 22;
+    for (let i = 0; i < roofH; i++) {
+      const t = i / (roofH - 1);
+      const w = Math.round(10 + (84 - 10) * t);
+      const x = Math.round((W - w) / 2);
+      rect(ctx, x, 20 + i, w, 1, "#2e5ba8");
+      rect(ctx, x, 20 + i, 1, 1, "#1b1028");
+      rect(ctx, x + w - 1, 20 + i, 1, 1, "#1b1028");
+      if (i % 3 === 0) rect(ctx, x + 2, 20 + i, Math.max(1, w - 4), 1, "#4070c0");
+    }
+    rect(ctx, 4, 49, 88, 1, "#1b1028");
+    // Awning above the storefront (striped canopy)
+    rect(ctx, 20, 56, 56, 4, "#1b1028");
+    for (let x = 20; x < 76; x += 4) {
+      rect(ctx, x, 57, 2, 2, "#3e9b4a");
+      rect(ctx, x + 2, 57, 2, 2, "#fff7c8");
+    }
+    // Awning posts
+    rect(ctx, 20, 60, 1, 28, "#4a2a14");
+    rect(ctx, 75, 60, 1, 28, "#4a2a14");
+    // Wide storefront (big window)
+    rect(ctx, 24, 62, 20, 16, "#1b1028");
+    rect(ctx, 26, 64, 16, 12, "#63a8d9");
+    rect(ctx, 34, 62, 1, 16, "#1b1028");
+    rect(ctx, 24, 70, 20, 1, "#1b1028");
+    // Door
+    rect(ctx, 52, 62, 14, 26, "#1b1028");
+    rect(ctx, 54, 64, 10, 22, "#4a2a14");
+    px(ctx, 62, 74, "#e0a93c");
+    // Barrel out front
+    rect(ctx, 78, 76, 8, 12, "#1b1028");
+    rect(ctx, 79, 77, 6, 10, "#8a5a2d");
+    rect(ctx, 79, 79, 6, 1, "#1b1028");
+    rect(ctx, 79, 83, 6, 1, "#1b1028");
+    // Store sign (yellow)
+    rect(ctx, 36, 44, 24, 6, "#1b1028");
+    rect(ctx, 37, 45, 22, 4, "#e0c98a");
+    rect(ctx, 39, 46, 2, 2, "#1b1028");
+    rect(ctx, 43, 46, 2, 2, "#1b1028");
+    rect(ctx, 47, 46, 2, 2, "#1b1028");
+    rect(ctx, 51, 46, 2, 2, "#1b1028");
+    rect(ctx, 55, 46, 2, 2, "#1b1028");
+    tex.refresh();
   }
 
   makeGhostTile() {
