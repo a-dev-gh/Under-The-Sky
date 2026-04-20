@@ -1,7 +1,14 @@
 {
-  "_comment": "Cell coordinates in tileset.png mapped to in-game texture keys. Unmapped keys keep their procedural placeholder art.",
+  "_comment": "First-pass mappings inferred from the tileset screenshot. Expect some cells to be off by a few — replace any that look wrong.",
   "cellSize": 32,
   "mapping": {
-    "tile_grass": { "x": 0, "y": 0 }
+    "tile_grass": { "variants": [[0, 2], [1, 2], [2, 2], [0, 3], [1, 3]] },
+    "tile_water": { "variants": [[0, 0], [1, 0], [2, 0]] },
+    "tile_dirt": { "x": 4, "y": 7 },
+    "tile_stone": { "x": 4, "y": 5 },
+    "tile_sand": { "x": 3, "y": 4 },
+    "obj_tree": { "x": 1, "y": 13, "h": 2 },
+    "obj_rock": { "x": 3, "y": 5 },
+    "obj_berry_bush": { "x": 0, "y": 14 }
   }
 }
