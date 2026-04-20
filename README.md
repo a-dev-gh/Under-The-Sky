@@ -74,9 +74,28 @@ assets/sprites/            # drop real PNGs here to replace placeholders
 Every sprite in the game has a canonical **texture key** (`tile_grass`,
 `obj_tree`, `build_house`, `char_player`, etc.). A procedural placeholder is
 drawn at boot for each key. You can override any of them with real pixel
-art without touching code.
+art without touching code — **two paths, either works, PNGs win over
+tileset**.
 
-### Fastest: drop a tileset PNG + a JSON manifest
+### Easiest: one PNG per sprite
+
+Drop a file named after the key into `assets/sprites/`:
+
+```
+assets/sprites/tile_grass.png
+assets/sprites/tile_water.png
+assets/sprites/obj_tree.png
+assets/sprites/build_house.png
+assets/sprites/char_player.png     ← 4-frame horizontal sheet (128x32 by default)
+```
+
+Variants: `tile_grass.png`, `tile_grass_1.png`, `tile_grass_2.png`, … up to
+`_5`. The world randomly picks one per tile (deterministic from the seed).
+
+Perfect for AI-generated art: each Gemini / Midjourney / Piskel output is
+one file, one name, one replacement. No JSON editing.
+
+### Alternative: tileset atlas + JSON manifest
 
 1. Save your tileset image at `assets/sprites/tileset.png`. For Piskel, export
    at **2.0x scale** so each cell is 32×32 (matching the game's tile size).

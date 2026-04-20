@@ -3,6 +3,10 @@
 
 import { TILE } from "../constants.js";
 import { preloadTileset, applyTilesetOverrides } from "../systems/TilesetLoader.js";
+import {
+  preloadIndividualPngs,
+  applyIndividualPngOverrides,
+} from "../systems/PngOverrides.js";
 
 function mulberry32(seed) {
   return () => {
@@ -41,6 +45,7 @@ export class BootScene extends Phaser.Scene {
 
   preload() {
     preloadTileset(this);
+    preloadIndividualPngs(this);
   }
 
   create() {
@@ -63,10 +68,14 @@ export class BootScene extends Phaser.Scene {
       this.makeGeneralStore();
       this.makeGhostTile();
       this.makeIcons();
-      // If the user dropped assets/sprites/tileset.png + tileset.json, slice
-      // it now and override any procedural textures whose keys the manifest
-      // covers. Missing / empty manifest is fine — procedural stays.
+      // Apply tileset manifest overrides first (keys mapped there replace
+      // the procedural textures).
       applyTilesetOverrides(this);
+      // Then apply any per-file PNG overrides (any <key>.png in
+      // assets/sprites/ wins over both procedural and tileset). This is the
+      // friendlier path for AI-generated sprites where each prompt is one
+      // file.
+      applyIndividualPngOverrides(this);
       console.log("[Boot] done, starting Title");
     } catch (e) {
       console.error("[Boot] crashed:", e);
