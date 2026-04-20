@@ -2,6 +2,7 @@ import { TILE, MAP_COLS, MAP_ROWS } from "../main.js";
 import { buildForestMap } from "../maps/ForestMap.js";
 import { Character, DIR } from "../entities/Character.js";
 import { NPC } from "../entities/NPC.js";
+import { Animal } from "../entities/Animal.js";
 import { Controls } from "../systems/Controls.js";
 import { DayNightCycle } from "../systems/DayNightCycle.js";
 import { BuildSystem } from "../systems/BuildSystem.js";
@@ -124,6 +125,27 @@ export class GameScene extends Phaser.Scene {
         this.physics.add.collider(this.npcs[i].sprite, this.npcs[j].sprite);
       }
     }
+
+    // Spawn ambient animals (rabbits + the occasional deer)
+    this.animals = [];
+    const spawnAnimal = (key) => {
+      for (let tries = 0; tries < 40; tries++) {
+        const gx = Math.floor(Math.random() * MAP_COLS);
+        const gy = Math.floor(Math.random() * MAP_ROWS);
+        const tile = this.map.ground[gy]?.[gx];
+        if (tile === 4 || tile === 3) continue;
+        if (this.map.blocked.has(`${gx},${gy}`)) continue;
+        const dx = gx * TILE + TILE / 2 - cx;
+        const dy = gy * TILE + TILE / 2 - cy;
+        if (dx * dx + dy * dy < 120 * 120) continue; // keep clear of town center
+        const a = new Animal(this, gx * TILE + TILE / 2, gy * TILE + TILE / 2, key);
+        this.physics.add.collider(a.sprite, this.solids);
+        this.animals.push(a);
+        return;
+      }
+    };
+    for (let i = 0; i < 10; i++) spawnAnimal("animal_rabbit");
+    for (let i = 0; i < 3; i++) spawnAnimal("animal_deer");
 
     // Camera
     this.cameras.main.setBounds(0, 0, worldW, worldH);
@@ -256,6 +278,10 @@ export class GameScene extends Phaser.Scene {
 
     for (const npc of this.npcs) {
       npc.update(delta, { width: MAP_COLS * TILE, height: MAP_ROWS * TILE });
+    }
+
+    for (const a of this.animals) {
+      a.update(delta, this.player);
     }
 
     this.day.update(delta);

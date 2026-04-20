@@ -44,6 +44,32 @@ export function buildForestMap(seed = 42) {
     }
   }
 
+  // River: winds N-S on the east side of the map. Town center sits at 0.3*cols
+  // so the river doesn't immediately gate progression; players can still skirt
+  // around it later via bridges or go by its edge.
+  const riverBaseX = Math.floor(cols * 0.78);
+  const freqA = 0.22 + r() * 0.08;
+  const freqB = 0.38 + r() * 0.1;
+  const ampA = 4 + r() * 3;
+  const ampB = 2 + r() * 2;
+  const phaseA = r() * Math.PI * 2;
+  const phaseB = r() * Math.PI * 2;
+  for (let y = 0; y < rows; y++) {
+    const wiggle =
+      Math.sin(y * freqA + phaseA) * ampA + Math.cos(y * freqB + phaseB) * ampB;
+    const cx = Math.round(riverBaseX + wiggle);
+    const w = 2 + (r() > 0.7 ? 1 : 0); // occasional thicker stretch
+    for (let dx = 0; dx < w; dx++) {
+      const gx = cx + dx;
+      if (gx > 0 && gx < cols - 1) ground[y][gx] = 4;
+    }
+    // sandy bank on each side
+    const left = cx - 1;
+    const right = cx + w;
+    if (left > 0 && ground[y][left] !== 4) ground[y][left] = 3;
+    if (right < cols - 1 && ground[y][right] !== 4) ground[y][right] = 3;
+  }
+
   // Dirt patch for town center
   const tcx = Math.floor(cols * 0.3);
   const tcy = Math.floor(rows * 0.6);

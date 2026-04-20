@@ -271,6 +271,13 @@ export class UIScene extends Phaser.Scene {
     for (const npc of this.game.npcs) {
       g.fillRect(toMx(npc.sprite.x), toMy(npc.sprite.y), 2, 2);
     }
+    // Animals (pale pink for rabbits, tan for deer)
+    if (this.game.animals) {
+      for (const a of this.game.animals) {
+        g.fillStyle(a.key === "animal_deer" ? 0xa06a3a : 0xf8b0a0, 1);
+        g.fillRect(toMx(a.sprite.x), toMy(a.sprite.y), 1, 1);
+      }
+    }
     // Player
     const p = this.game.player.sprite;
     g.fillStyle(0x3e9b4a, 1);

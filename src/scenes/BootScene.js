@@ -50,6 +50,7 @@ export class BootScene extends Phaser.Scene {
       console.log("[Boot] objects ok");
       this.makeCharacters();
       console.log("[Boot] characters ok");
+      this.makeAnimals();
       this.makeHouse();
       this.makeGhostTile();
       this.makeIcons();
@@ -285,6 +286,63 @@ export class BootScene extends Phaser.Scene {
     this.textures.get(key).add(1, 0, W, 0, W, H); // up
     this.textures.get(key).add(2, 0, W * 2, 0, W, H); // left
     this.textures.get(key).add(3, 0, W * 3, 0, W, H); // right
+  }
+
+  makeAnimals() {
+    // Rabbit: 16x16, white body, long ears, small shadow.
+    {
+      const { tex, ctx } = makeCanvas(this, "animal_rabbit", 16, 16);
+      rect(ctx, 3, 13, 10, 1, "rgba(0,0,0,0.3)");
+      // body
+      this.blob(ctx, 8, 10, 4, 3, "#1b1028");
+      this.blob(ctx, 8, 10, 3, 2, "#ebe3d0");
+      // tail
+      px(ctx, 11, 10, "#ffffff");
+      // head
+      this.blob(ctx, 8, 7, 3, 2, "#1b1028");
+      this.blob(ctx, 8, 7, 2, 2, "#f0e8d8");
+      // ears
+      rect(ctx, 6, 2, 1, 5, "#1b1028");
+      rect(ctx, 7, 3, 1, 4, "#f0e8d8");
+      rect(ctx, 9, 2, 1, 5, "#1b1028");
+      rect(ctx, 10, 3, 1, 4, "#f0e8d8");
+      px(ctx, 7, 4, "#f8b0a0");
+      px(ctx, 10, 4, "#f8b0a0");
+      // eyes + nose
+      px(ctx, 7, 7, "#1b1028");
+      px(ctx, 9, 7, "#1b1028");
+      px(ctx, 8, 8, "#f06080");
+      tex.refresh();
+    }
+    // Deer-ish: slightly larger, tan
+    {
+      const { tex, ctx } = makeCanvas(this, "animal_deer", 24, 24);
+      rect(ctx, 5, 21, 14, 1, "rgba(0,0,0,0.3)");
+      // body
+      this.blob(ctx, 12, 16, 7, 4, "#1b1028");
+      this.blob(ctx, 12, 16, 6, 3, "#a06a3a");
+      // spots
+      px(ctx, 9, 15, "#e0b070");
+      px(ctx, 15, 16, "#e0b070");
+      // legs (stumps)
+      rect(ctx, 8, 18, 2, 3, "#1b1028");
+      rect(ctx, 9, 18, 1, 3, "#6b3e21");
+      rect(ctx, 14, 18, 2, 3, "#1b1028");
+      rect(ctx, 15, 18, 1, 3, "#6b3e21");
+      // neck + head
+      rect(ctx, 16, 10, 3, 5, "#1b1028");
+      rect(ctx, 17, 11, 1, 4, "#a06a3a");
+      this.blob(ctx, 19, 9, 3, 2, "#1b1028");
+      this.blob(ctx, 19, 9, 2, 2, "#c8884a");
+      // antlers
+      rect(ctx, 17, 5, 1, 4, "#4a2a14");
+      rect(ctx, 18, 6, 1, 1, "#4a2a14");
+      rect(ctx, 19, 4, 1, 4, "#4a2a14");
+      rect(ctx, 20, 6, 1, 1, "#4a2a14");
+      // eye
+      px(ctx, 19, 9, "#1b1028");
+      tex.refresh();
+    }
   }
 
   makeHouse() {
