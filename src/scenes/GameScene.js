@@ -141,9 +141,16 @@ export class GameScene extends Phaser.Scene {
         this.saveGame();
       },
     });
-    // Rehydrate saved buildings
+    // Rehydrate saved buildings (wrapped in try so one bad entry doesn't
+    // crash the whole scene startup on Continue).
     for (const h of savedHouses) {
-      this.build.placeAt(h.gx, h.gy);
+      try {
+        if (typeof h?.gx === "number" && typeof h?.gy === "number") {
+          this.build.placeAt(h.gx, h.gy);
+        }
+      } catch (err) {
+        console.warn("[Game] skipped bad saved house", h, err);
+      }
     }
 
     this.input.keyboard.on("keydown-B", () => this.build.toggle());

@@ -21,12 +21,12 @@ export class CreditsScene extends Phaser.Scene {
     const lines = [
       "A top-down survival town-builder.",
       "",
-      "Design & direction — you.",
-      "Programming — Claude (Anthropic).",
-      "Engine — Phaser 3.",
-      "Placeholder pixel art — procedural at boot.",
+      "Design & direction — Alexander.ad",
+      "Programming — Claude (Anthropic)",
+      "Engine — Phaser 3",
+      "Placeholder pixel art — procedural at boot",
       "",
-      "Swap in real sprites any time in /assets/sprites.",
+      "Swap in real sprites any time under /assets/sprites.",
     ];
     lines.forEach((line, i) => {
       this.add

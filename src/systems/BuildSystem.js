@@ -85,9 +85,13 @@ export class BuildSystem {
     const house = this.scene.add
       .image(wx, wy, "build_house")
       .setDepth(wy + HOUSE_TILE_H * TILE * 0.5 - 4);
-    const body = this.solids.create(wx, wy + 20, "build_house");
+    // Collider covers only the bottom ~35% of the footprint (the actual walls
+    // at the character's feet). This leaves a walkable gap between neighbouring
+    // houses instead of fusing them into one solid wall.
+    const colliderH = Math.round(HOUSE_TILE_H * TILE * 0.35);
+    const body = this.solids.create(wx, wy + TILE, "build_house");
     body.setVisible(false);
-    body.body.setSize(HOUSE_TILE_W * TILE - 6, HOUSE_TILE_H * TILE * 0.55);
+    body.body.setSize(HOUSE_TILE_W * TILE - 10, colliderH);
     body.body.updateFromGameObject();
     const record = { house, body, gx, gy };
     this.buildings.push(record);

@@ -52,6 +52,7 @@ export class BootScene extends Phaser.Scene {
       console.log("[Boot] characters ok");
       this.makeHouse();
       this.makeGhostTile();
+      this.makeIcons();
       console.log("[Boot] done, starting Title");
     } catch (e) {
       console.error("[Boot] crashed:", e);
@@ -334,6 +335,73 @@ export class BootScene extends Phaser.Scene {
       rect(ctx, wx, 58, 10, 1, "#1b1028");
     }
     tex.refresh();
+  }
+
+  makeIcons() {
+    // Small 16x16 icons for the HUD resource counters.
+    {
+      // Wood log (icon_wood)
+      const { tex, ctx } = makeCanvas(this, "icon_wood", 16, 16);
+      rect(ctx, 2, 5, 12, 6, "#1b1028");
+      rect(ctx, 3, 6, 10, 4, "#6b3e21");
+      rect(ctx, 4, 7, 8, 2, "#8a5a2d");
+      // end rings
+      px(ctx, 3, 6, "#4a2a14");
+      px(ctx, 3, 9, "#4a2a14");
+      px(ctx, 12, 6, "#4a2a14");
+      px(ctx, 12, 9, "#4a2a14");
+      tex.refresh();
+    }
+    {
+      // Stone chunk (icon_stone)
+      const { tex, ctx } = makeCanvas(this, "icon_stone", 16, 16);
+      this.blob(ctx, 8, 10, 6, 4, "#1b1028");
+      this.blob(ctx, 8, 9, 5, 3, "#5c6066");
+      this.blob(ctx, 8, 8, 4, 2, "#7a7f85");
+      px(ctx, 6, 7, "#9aa0a6");
+      px(ctx, 10, 9, "#9aa0a6");
+      tex.refresh();
+    }
+    {
+      // Apple / food (icon_food)
+      const { tex, ctx } = makeCanvas(this, "icon_food", 16, 16);
+      this.blob(ctx, 8, 9, 5, 5, "#1b1028");
+      this.blob(ctx, 8, 9, 4, 4, "#c83c3c");
+      this.blob(ctx, 6, 7, 2, 2, "#f06060");
+      // stem
+      rect(ctx, 8, 3, 1, 3, "#4a2a14");
+      // leaf
+      rect(ctx, 9, 4, 2, 1, "#3c6e25");
+      px(ctx, 11, 3, "#3c6e25");
+      tex.refresh();
+    }
+    {
+      // Tiny house (icon_house)
+      const { tex, ctx } = makeCanvas(this, "icon_house", 16, 16);
+      // roof
+      for (let i = 0; i < 5; i++) {
+        const w = 2 + i * 2;
+        const x = Math.round((16 - w) / 2);
+        rect(ctx, x, 3 + i, w, 1, "#a83c3c");
+        rect(ctx, x, 3 + i, 1, 1, "#1b1028");
+        rect(ctx, x + w - 1, 3 + i, 1, 1, "#1b1028");
+      }
+      // walls
+      rect(ctx, 3, 8, 10, 6, "#1b1028");
+      rect(ctx, 4, 9, 8, 4, "#c8a672");
+      rect(ctx, 7, 11, 2, 3, "#4a2a14"); // door
+      tex.refresh();
+    }
+    {
+      // Sword for Invade / combat actions (icon_sword) — for Phase C later
+      const { tex, ctx } = makeCanvas(this, "icon_sword", 16, 16);
+      rect(ctx, 7, 2, 2, 10, "#1b1028");
+      rect(ctx, 8, 3, 1, 9, "#d0d8e0");
+      rect(ctx, 5, 11, 6, 1, "#1b1028");
+      rect(ctx, 6, 12, 4, 1, "#6b3e21");
+      rect(ctx, 7, 13, 2, 2, "#4a2a14");
+      tex.refresh();
+    }
   }
 
   makeGhostTile() {

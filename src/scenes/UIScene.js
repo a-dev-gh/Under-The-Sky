@@ -48,14 +48,26 @@ export class UIScene extends Phaser.Scene {
       })
       .setOrigin(0, 0);
 
-    // --- Resource counters (top-center) ---
-    this.resText = this.add
-      .text(0, 12, "🪵 0   🪨 0   🍎 0   🏠 0", {
-        fontFamily: "system-ui, sans-serif",
-        fontSize: "13px",
-        color: "#f0e3c8",
-      })
-      .setOrigin(0.5, 0);
+    // --- Resource counters (top-center). Real pixel icons + number per slot. ---
+    this.resIcons = {};
+    this.resGroup = this.add.container(0, 0);
+    const addIcon = (key, iconKey) => {
+      const icon = this.add.image(0, 20, iconKey).setOrigin(0, 0.5).setScale(1.25);
+      const txt = this.add
+        .text(0, 20, "0", {
+          fontFamily: "system-ui, sans-serif",
+          fontSize: "14px",
+          color: "#f0e3c8",
+          fontStyle: "bold",
+        })
+        .setOrigin(0, 0.5);
+      this.resGroup.add([icon, txt]);
+      this.resIcons[key] = { icon, txt };
+    };
+    addIcon("wood", "icon_wood");
+    addIcon("stone", "icon_stone");
+    addIcon("food", "icon_food");
+    addIcon("houses", "icon_house");
 
     // --- Menu button (top-right) ---
     this.menuBtn = this.add
@@ -185,9 +197,10 @@ export class UIScene extends Phaser.Scene {
     const g = this.game;
     const r = g.resources || { wood: 0, stone: 0, food: 0 };
     const houses = g.build?.buildings.length || 0;
-    this.resText.setText(
-      `🪵 ${r.wood}   🪨 ${r.stone}   🍎 ${r.food}   🏠 ${houses}`,
-    );
+    this.resIcons.wood.txt.setText(`${r.wood}`);
+    this.resIcons.stone.txt.setText(`${r.stone}`);
+    this.resIcons.food.txt.setText(`${r.food}`);
+    this.resIcons.houses.txt.setText(`${houses}`);
   }
 
   // ---------- Minimap ----------
@@ -323,7 +336,16 @@ export class UIScene extends Phaser.Scene {
     this.topBar.setSize(w, 40);
     this.menuBtn.setPosition(w - 12, 6);
     this.menuBtnLabel.setPosition(w - 12 - 12, 14);
-    this.resText.setPosition(w / 2, 12);
+    // Layout resource icons centered horizontally.
+    const order = ["wood", "stone", "food", "houses"];
+    const slotW = 70;
+    const totalW = slotW * order.length;
+    const startX = w / 2 - totalW / 2;
+    order.forEach((key, i) => {
+      const { icon, txt } = this.resIcons[key];
+      icon.setPosition(startX + i * slotW, 20);
+      txt.setPosition(startX + i * slotW + 24, 20);
+    });
     if (this.minimap) this.minimap.setPosition(w - MINIMAP_W - 16, 48);
     this.buildBtn.setPosition(w - 12, h - 12);
     this.buildBtnLabel.setPosition(w - 12 - 12, h - 12 - 12);
