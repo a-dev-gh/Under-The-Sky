@@ -26,12 +26,6 @@ export class GameScene extends Phaser.Scene {
     const worldW = MAP_COLS * TILE;
     const worldH = MAP_ROWS * TILE;
     this.physics.world.setBounds(0, 0, worldW, worldH);
-    // DEBUG: bright marker to confirm GameScene is rendering
-    this.add
-      .rectangle(10, 10, 40, 40, 0xff00ff)
-      .setOrigin(0, 0)
-      .setScrollFactor(0)
-      .setDepth(100000);
 
     this.groundLayer = this.add.group();
     this.overlayLayer = this.add.group();
