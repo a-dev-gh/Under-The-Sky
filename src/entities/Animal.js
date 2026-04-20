@@ -1,4 +1,5 @@
-import { TILE, MAP_COLS, MAP_ROWS } from "../main.js";
+import { TILE } from "../main.js";
+import { WORLD_COLS, WORLD_ROWS } from "../world/World.js";
 
 // Passive ambient animals: wander, flee when player gets close.
 // Interface mirrors NPC so GameScene.update can iterate uniformly.
@@ -50,8 +51,8 @@ export class Animal {
         const d = 32 + Math.random() * 80;
         let tx = this.sprite.x + Math.cos(angle) * d;
         let ty = this.sprite.y + Math.sin(angle) * d;
-        const worldW = MAP_COLS * TILE;
-        const worldH = MAP_ROWS * TILE;
+        const worldW = WORLD_COLS * TILE;
+        const worldH = WORLD_ROWS * TILE;
         tx = Math.min(worldW - 16, Math.max(16, tx));
         ty = Math.min(worldH - 16, Math.max(16, ty));
         this.target = { x: tx, y: ty };

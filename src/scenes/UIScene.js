@@ -1,4 +1,12 @@
-import { TILE, MAP_COLS, MAP_ROWS } from "../main.js";
+import { TILE } from "../main.js";
+import {
+  WORLD_COLS,
+  WORLD_ROWS,
+  CHUNK_COLS,
+  CHUNK_ROWS,
+  WORLD_CHUNKS_X,
+  WORLD_CHUNKS_Y,
+} from "../world/World.js";
 
 // HUD overlay: top bar, resource counters, minimap, touch joystick, build button.
 // Runs on top of GameScene; its camera is transparent so the world renders
@@ -212,40 +220,58 @@ export class UIScene extends Phaser.Scene {
       .setStrokeStyle(1, 0x3a4a6a);
     this.minimap.add(bg);
 
-    // Static tile layer (drawn once from the GameScene map).
+    // Static tile layer (drawn once from the world).
     this.minimapTiles = this.add.graphics();
     this.minimap.add(this.minimapTiles);
-    const map = this.game.map;
-    const sx = MINIMAP_W / MAP_COLS;
-    const sy = MINIMAP_H / MAP_ROWS;
+    const world = this.game.world;
+    const sx = MINIMAP_W / WORLD_COLS;
+    const sy = MINIMAP_H / WORLD_ROWS;
     this.minimapTiles.fillStyle(0x0a0f20, 1).fillRect(2, 2, MINIMAP_W, MINIMAP_H);
-    for (let y = 0; y < MAP_ROWS; y++) {
-      for (let x = 0; x < MAP_COLS; x++) {
-        const id = map.ground[y][x];
-        this.minimapTiles.fillStyle(TILE_COLORS[id], 1);
-        this.minimapTiles.fillRect(
-          2 + Math.floor(x * sx),
-          2 + Math.floor(y * sy),
-          Math.ceil(sx),
-          Math.ceil(sy),
-        );
+    for (let cy = 0; cy < WORLD_CHUNKS_Y; cy++) {
+      for (let cx = 0; cx < WORLD_CHUNKS_X; cx++) {
+        const chunk = world.chunks[cy][cx];
+        for (let y = 0; y < CHUNK_ROWS; y++) {
+          for (let x = 0; x < CHUNK_COLS; x++) {
+            const id = chunk.ground[y][x];
+            const gx = cx * CHUNK_COLS + x;
+            const gy = cy * CHUNK_ROWS + y;
+            this.minimapTiles.fillStyle(TILE_COLORS[id], 1);
+            this.minimapTiles.fillRect(
+              2 + Math.floor(gx * sx),
+              2 + Math.floor(gy * sy),
+              Math.max(1, Math.ceil(sx)),
+              Math.max(1, Math.ceil(sy)),
+            );
+          }
+        }
       }
     }
-    // Draw static objects (trees / rocks) as tiny dots so minimap reads right.
-    for (const obj of map.objects) {
+    // Chunk borders (faint grid) so player can see the world structure.
+    this.minimapTiles.lineStyle(1, 0x000000, 0.35);
+    for (let cy = 1; cy < WORLD_CHUNKS_Y; cy++) {
+      const y = 2 + Math.floor(cy * CHUNK_ROWS * sy);
+      this.minimapTiles.lineBetween(2, y, 2 + MINIMAP_W, y);
+    }
+    for (let cx = 1; cx < WORLD_CHUNKS_X; cx++) {
+      const x = 2 + Math.floor(cx * CHUNK_COLS * sx);
+      this.minimapTiles.lineBetween(x, 2, x, 2 + MINIMAP_H);
+    }
+    // Tree / rock dots across the whole world.
+    const objects = this.game.map.objects;
+    for (const obj of objects) {
       if (obj.kind === "tree") this.minimapTiles.fillStyle(0x2a5218, 1);
       else if (obj.kind === "rock") this.minimapTiles.fillStyle(0x5c6066, 1);
       else if (obj.kind === "wood") this.minimapTiles.fillStyle(0x8a5a2d, 1);
       else if (obj.kind === "stone_pile") this.minimapTiles.fillStyle(0x9aa0a6, 1);
       else if (obj.kind === "berry") this.minimapTiles.fillStyle(0xc83c3c, 1);
+      else continue;
       this.minimapTiles.fillRect(
         2 + Math.floor(obj.gx * sx),
         2 + Math.floor(obj.gy * sy),
-        Math.max(1, Math.floor(sx)),
-        Math.max(1, Math.floor(sy)),
+        1,
+        1,
       );
     }
-
     // Dynamic overlay (player, NPCs, houses, viewport box).
     this.minimapDyn = this.add.graphics();
     this.minimap.add(this.minimapDyn);
@@ -255,9 +281,8 @@ export class UIScene extends Phaser.Scene {
     if (!this.minimapDyn) return;
     const g = this.minimapDyn;
     g.clear();
-    const map = this.game.map;
-    const sx = MINIMAP_W / MAP_COLS;
-    const sy = MINIMAP_H / MAP_ROWS;
+    const sx = MINIMAP_W / WORLD_COLS;
+    const sy = MINIMAP_H / WORLD_ROWS;
     const toMx = (wx) => 2 + Math.floor((wx / TILE) * sx);
     const toMy = (wy) => 2 + Math.floor((wy / TILE) * sy);
 
@@ -314,8 +339,8 @@ export class UIScene extends Phaser.Scene {
   handleMinimapClick(pointer) {
     const lx = pointer.x - this.minimap.x - 2;
     const ly = pointer.y - this.minimap.y - 2;
-    const wx = (lx / MINIMAP_W) * MAP_COLS * TILE;
-    const wy = (ly / MINIMAP_H) * MAP_ROWS * TILE;
+    const wx = (lx / MINIMAP_W) * WORLD_COLS * TILE;
+    const wy = (ly / MINIMAP_H) * WORLD_ROWS * TILE;
     this.game.cameras.main.pan(wx, wy, 400, "Sine.easeInOut");
   }
 

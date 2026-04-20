@@ -1,5 +1,16 @@
-import { TILE, MAP_COLS, MAP_ROWS } from "../main.js";
-import { buildForestMap } from "../maps/ForestMap.js";
+import { TILE } from "../main.js";
+import {
+  buildWorld,
+  CHUNK_COLS,
+  CHUNK_ROWS,
+  WORLD_CHUNKS_X,
+  WORLD_CHUNKS_Y,
+  WORLD_COLS,
+  WORLD_ROWS,
+  WORLD_WIDTH,
+  WORLD_HEIGHT,
+  TILES,
+} from "../world/World.js";
 import { Character, DIR } from "../entities/Character.js";
 import { NPC } from "../entities/NPC.js";
 import { Animal } from "../entities/Animal.js";
@@ -33,21 +44,32 @@ export class GameScene extends Phaser.Scene {
     this.resources = saved?.resources || { wood: 0, stone: 0, food: 0 };
     const savedHouses = saved?.houses || [];
 
-    this.map = buildForestMap(this.seedStr);
-    const worldW = MAP_COLS * TILE;
-    const worldH = MAP_ROWS * TILE;
-    this.physics.world.setBounds(0, 0, worldW, worldH);
+    this.world = buildWorld(this.seedStr);
+    // Alias "map" for legacy code paths that reference blocked/spawn/objects.
+    this.map = {
+      ground: null, // not used directly anymore; chunks own their tiles
+      blocked: this.world.blocked,
+      spawn: this.world.spawn,
+      objects: this.world.chunks.flat().flatMap((c) => c.objects),
+    };
+    this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
-    this.groundLayer = this.add.group();
-    this.overlayLayer = this.add.group();
-
-    for (let y = 0; y < MAP_ROWS; y++) {
-      for (let x = 0; x < MAP_COLS; x++) {
-        const id = this.map.ground[y][x];
-        const img = this.add
-          .image(x * TILE + TILE / 2, y * TILE + TILE / 2, TILE_KEYS[id])
-          .setDepth(-1000);
-        this.groundLayer.add(img);
+    // Render each chunk's ground tiles onto a single per-chunk RenderTexture.
+    // This turns what would be 43k individual Image objects into 25 composite
+    // textures (one per chunk) for massively cheaper rendering.
+    for (let cy = 0; cy < WORLD_CHUNKS_Y; cy++) {
+      for (let cx = 0; cx < WORLD_CHUNKS_X; cx++) {
+        const chunk = this.world.chunks[cy][cx];
+        const wx = cx * CHUNK_COLS * TILE;
+        const wy = cy * CHUNK_ROWS * TILE;
+        const rt = this.add.renderTexture(wx, wy, CHUNK_COLS * TILE, CHUNK_ROWS * TILE);
+        rt.setOrigin(0, 0).setDepth(-1000);
+        for (let y = 0; y < CHUNK_ROWS; y++) {
+          for (let x = 0; x < CHUNK_COLS; x++) {
+            const id = chunk.ground[y][x];
+            rt.draw(TILE_KEYS[id], x * TILE, y * TILE);
+          }
+        }
       }
     }
 
@@ -60,25 +82,33 @@ export class GameScene extends Phaser.Scene {
       c.body.updateFromGameObject();
       return c;
     };
-    // Water blocks
-    for (let y = 0; y < MAP_ROWS; y++) {
-      for (let x = 0; x < MAP_COLS; x++) {
-        if (this.map.ground[y][x] === 4) {
-          addCollider(
-            x * TILE + TILE / 2,
-            y * TILE + TILE / 2,
-            "tile_water",
-            TILE,
-            TILE
-          );
-          this.map.blocked.add(`${x},${y}`);
+
+    // Water tile colliders (only tiles currently rendered as water)
+    for (let cy = 0; cy < WORLD_CHUNKS_Y; cy++) {
+      for (let cx = 0; cx < WORLD_CHUNKS_X; cx++) {
+        const chunk = this.world.chunks[cy][cx];
+        for (let y = 0; y < CHUNK_ROWS; y++) {
+          for (let x = 0; x < CHUNK_COLS; x++) {
+            if (chunk.ground[y][x] === TILES.WATER) {
+              const gx = cx * CHUNK_COLS + x;
+              const gy = cy * CHUNK_ROWS + y;
+              addCollider(
+                gx * TILE + TILE / 2,
+                gy * TILE + TILE / 2,
+                "tile_water",
+                TILE,
+                TILE
+              );
+              this.world.blocked.add(`${gx},${gy}`);
+            }
+          }
         }
       }
     }
 
-    // Place objects (depth = y+8 to sort with characters by feet position)
+    // Place objects across ALL chunks.
     for (const obj of this.map.objects) {
-      const { x, y, kind, gx, gy } = obj;
+      const { x, y, kind } = obj;
       if (kind === "tree") {
         this.add.image(x, y - 6, "obj_tree").setDepth(y + 8);
         addCollider(x, y + 8, "obj_tree", 18, 12);
@@ -95,12 +125,11 @@ export class GameScene extends Phaser.Scene {
         this.add.image(x, y, "obj_berry_bush").setDepth(y + 4);
         addCollider(x, y + 4, "obj_berry_bush", 20, 14);
       }
-      this.map.blocked.add(`${gx},${gy}`);
     }
 
-    // Spawn characters around town center
-    const cx = this.map.spawn.x + TILE / 2;
-    const cy = this.map.spawn.y + TILE / 2;
+    // Spawn player at the world's spawn hint (inside the center chunk)
+    const cx = this.world.spawn.x;
+    const cy = this.world.spawn.y;
     this.player = new Character(this, cx, cy, "char_player");
     this.player.setName("You");
     this.player.sprite.setCollideWorldBounds(true);
@@ -126,29 +155,35 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // Spawn ambient animals (rabbits + the occasional deer)
+    // Spawn ambient animals across the entire world, picking valid tiles
+    // per chunk. Each chunk gets its own fair share so no one chunk is
+    // flooded.
     this.animals = [];
-    const spawnAnimal = (key) => {
-      for (let tries = 0; tries < 40; tries++) {
-        const gx = Math.floor(Math.random() * MAP_COLS);
-        const gy = Math.floor(Math.random() * MAP_ROWS);
-        const tile = this.map.ground[gy]?.[gx];
-        if (tile === 4 || tile === 3) continue;
-        if (this.map.blocked.has(`${gx},${gy}`)) continue;
+    const spawnAnimalAnywhere = (key) => {
+      for (let tries = 0; tries < 60; tries++) {
+        const gx = Math.floor(Math.random() * WORLD_COLS);
+        const gy = Math.floor(Math.random() * WORLD_ROWS);
+        const chunkX = Math.floor(gx / CHUNK_COLS);
+        const chunkY = Math.floor(gy / CHUNK_ROWS);
+        const localX = gx % CHUNK_COLS;
+        const localY = gy % CHUNK_ROWS;
+        const tile = this.world.chunks[chunkY]?.[chunkX]?.ground[localY]?.[localX];
+        if (tile === TILES.WATER || tile === TILES.SAND) continue;
+        if (this.world.blocked.has(`${gx},${gy}`)) continue;
         const dx = gx * TILE + TILE / 2 - cx;
         const dy = gy * TILE + TILE / 2 - cy;
-        if (dx * dx + dy * dy < 120 * 120) continue; // keep clear of town center
+        if (dx * dx + dy * dy < 120 * 120) continue; // keep clear of spawn town
         const a = new Animal(this, gx * TILE + TILE / 2, gy * TILE + TILE / 2, key);
         this.physics.add.collider(a.sprite, this.solids);
         this.animals.push(a);
         return;
       }
     };
-    for (let i = 0; i < 10; i++) spawnAnimal("animal_rabbit");
-    for (let i = 0; i < 3; i++) spawnAnimal("animal_deer");
+    for (let i = 0; i < 40; i++) spawnAnimalAnywhere("animal_rabbit");
+    for (let i = 0; i < 12; i++) spawnAnimalAnywhere("animal_deer");
 
-    // Camera
-    this.cameras.main.setBounds(0, 0, worldW, worldH);
+    // Camera bounds = entire world
+    this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     this.cameras.main.startFollow(this.player.sprite, true, 0.12, 0.12);
     this.cameras.main.setZoom(2);
 
@@ -277,7 +312,7 @@ export class GameScene extends Phaser.Scene {
     this.player.setVelocity(v.x * speed, v.y * speed);
 
     for (const npc of this.npcs) {
-      npc.update(delta, { width: MAP_COLS * TILE, height: MAP_ROWS * TILE });
+      npc.update(delta, { width: WORLD_WIDTH, height: WORLD_HEIGHT });
     }
 
     for (const a of this.animals) {
