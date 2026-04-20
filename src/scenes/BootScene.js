@@ -551,10 +551,9 @@ export class BootScene extends Phaser.Scene {
         rect(ctx, x + (y % 8 === 0 ? 0 : 4), y, 7, 3, "#5c6066");
       }
     }
-    // main round wooden hall (tan walls)
+    // main hall (tan walls)
     rect(ctx, 18, 38, 60, 24, "#1b1028");
     rect(ctx, 20, 40, 56, 20, "#c8a672");
-    // wood grain
     for (let y = 42; y < 58; y += 4) rect(ctx, 22, y, 52, 1, "#a8865c");
     // door
     rect(ctx, 42, 44, 12, 18, "#1b1028");
@@ -565,21 +564,30 @@ export class BootScene extends Phaser.Scene {
     rect(ctx, 28, 48, 4, 4, "#63a8d9");
     rect(ctx, 62, 46, 8, 8, "#1b1028");
     rect(ctx, 64, 48, 4, 4, "#63a8d9");
-    // domed/stepped slate roof
-    for (let i = 0; i < 14; i++) {
-      const w = 66 - i * 4;
+    // domed slate roof: narrow point at TOP, widening down to meet the wall
+    const roofTop = 14;
+    const roofBot = 38;
+    const roofH = roofBot - roofTop;
+    for (let i = 0; i < roofH; i++) {
+      const t = i / (roofH - 1);
+      // domed curve: w grows quickly then plateaus near the bottom
+      const w = Math.round(8 + (66 - 8) * Math.sqrt(t));
       const x = Math.round((W - w) / 2);
-      const y = 24 + i;
-      if (w <= 4) break;
+      const y = roofTop + i;
       rect(ctx, x, y, w, 1, "#3c4048");
       rect(ctx, x, y, 1, 1, "#1b1028");
       rect(ctx, x + w - 1, y, 1, 1, "#1b1028");
-      if (i % 3 === 0) rect(ctx, x + 2, y, w - 4, 1, "#5c6066");
+      // tile-roof highlight stripes on the left face
+      if (i > 2 && (i - 2) % 4 === 0) {
+        rect(ctx, x + 2, y, Math.max(1, w / 3 - 1), 1, "#5c6066");
+      }
     }
+    // dark base shadow under the eaves
+    rect(ctx, 12, 37, 72, 1, "#1b1028");
     // flagpole
-    rect(ctx, 47, 2, 2, 20, "#1b1028");
-    rect(ctx, 48, 2, 1, 20, "#d0d8e0");
-    // flag (deep red pennant)
+    rect(ctx, 47, 2, 2, 14, "#1b1028");
+    rect(ctx, 48, 2, 1, 14, "#d0d8e0");
+    // pennant flag
     rect(ctx, 49, 4, 10, 6, "#1b1028");
     rect(ctx, 49, 5, 9, 4, "#a83c3c");
     rect(ctx, 49, 5, 9, 1, "#d06060");
