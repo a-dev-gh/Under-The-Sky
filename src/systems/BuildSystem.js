@@ -73,26 +73,30 @@ export class BuildSystem {
 
   tryPlace() {
     if (!this.active || !this._hoverOk) return false;
-    const gx = this._hoverGx;
-    const gy = this._hoverGy;
+    const placed = this.placeAt(this._hoverGx, this._hoverGy);
+    return !!placed;
+  }
+
+  // Direct placement (used both by tryPlace and by save-load rehydration).
+  placeAt(gx, gy) {
+    if (!this.isClear(gx, gy)) return null;
     const wx = (gx + HOUSE_TILE_W / 2) * TILE;
     const wy = (gy + HOUSE_TILE_H / 2) * TILE;
-    // Visual at house center; depth = footprint bottom y for correct sort
     const house = this.scene.add
       .image(wx, wy, "build_house")
       .setDepth(wy + HOUSE_TILE_H * TILE * 0.5 - 4);
-    // Invisible static collider sitting at the house footprint
     const body = this.solids.create(wx, wy + 20, "build_house");
     body.setVisible(false);
     body.body.setSize(HOUSE_TILE_W * TILE - 6, HOUSE_TILE_H * TILE * 0.55);
     body.body.updateFromGameObject();
-    this.buildings.push({ house, body, gx, gy });
+    const record = { house, body, gx, gy };
+    this.buildings.push(record);
     for (let y = 0; y < HOUSE_TILE_H; y++) {
       for (let x = 0; x < HOUSE_TILE_W; x++) {
         this.occupied.add(`${gx + x},${gy + y}`);
       }
     }
-    if (this.onPlaced) this.onPlaced(this.buildings.length);
-    return true;
+    if (this.onPlaced) this.onPlaced(this.buildings.length, record);
+    return record;
   }
 }

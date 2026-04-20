@@ -52,12 +52,12 @@ export class BootScene extends Phaser.Scene {
       console.log("[Boot] characters ok");
       this.makeHouse();
       this.makeGhostTile();
-      console.log("[Boot] done, starting Game");
+      console.log("[Boot] done, starting Title");
     } catch (e) {
       console.error("[Boot] crashed:", e);
       throw e;
     }
-    this.scene.start("Game");
+    this.scene.start("Title");
   }
 
   makeTiles() {

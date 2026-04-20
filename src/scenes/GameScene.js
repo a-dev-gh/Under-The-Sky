@@ -5,6 +5,7 @@ import { NPC } from "../entities/NPC.js";
 import { Controls } from "../systems/Controls.js";
 import { DayNightCycle } from "../systems/DayNightCycle.js";
 import { BuildSystem } from "../systems/BuildSystem.js";
+import { loadSave, writeSave } from "../systems/Save.js";
 
 const TILE_KEYS = [
   "tile_grass",
@@ -22,7 +23,16 @@ export class GameScene extends Phaser.Scene {
 
   create() {
     console.log("[Game] create");
-    this.map = buildForestMap(42);
+    // Session state from Title/NewGame (or fall back to defaults for direct boot)
+    this.groupName = this.registry.get("groupName") || "The Wanderers";
+    this.seedStr = this.registry.get("seed") || "forest-42";
+    this.mapType = this.registry.get("mapType") || "forest";
+    this.resumed = this.registry.get("resumed") || false;
+    const saved = this.resumed ? loadSave() : null;
+    this.resources = saved?.resources || { wood: 0, stone: 0, food: 0 };
+    const savedHouses = saved?.houses || [];
+
+    this.map = buildForestMap(this.seedStr);
     const worldW = MAP_COLS * TILE;
     const worldH = MAP_ROWS * TILE;
     this.physics.world.setBounds(0, 0, worldW, worldH);
@@ -125,11 +135,16 @@ export class GameScene extends Phaser.Scene {
     this.build = new BuildSystem(this, {
       occupiedTiles: this.map.blocked,
       solids: this.solids,
-      onPlaced: (count) => {
+      onPlaced: (count, last) => {
         this.registry.set("houses", count);
         this.events.emit("housesChanged", count);
+        this.saveGame();
       },
     });
+    // Rehydrate saved buildings
+    for (const h of savedHouses) {
+      this.build.placeAt(h.gx, h.gy);
+    }
 
     this.input.keyboard.on("keydown-B", () => this.build.toggle());
     this.input.keyboard.on("keydown-ESC", () => {
@@ -156,8 +171,33 @@ export class GameScene extends Phaser.Scene {
     this.scene.launch("UI");
     this.scene.bringToTop("UI");
 
-    this.registry.set("houses", 0);
+    this.registry.set("houses", this.build.buildings.length);
     this.registry.set("joystick", { x: 0, y: 0 });
+    this.registry.set("resources", this.resources);
+
+    this.input.keyboard.on("keydown-M", () => {
+      this.saveGame();
+      this.scene.stop("UI");
+      this.scene.start("Title");
+    });
+
+    // Periodic autosave
+    this.time.addEvent({
+      delay: 10000,
+      loop: true,
+      callback: () => this.saveGame(),
+    });
+  }
+
+  saveGame() {
+    writeSave({
+      groupName: this.groupName,
+      seed: this.seedStr,
+      mapType: this.mapType,
+      resources: this.resources,
+      houses: this.build.buildings.map((b) => ({ gx: b.gx, gy: b.gy })),
+      savedAt: Date.now(),
+    });
   }
 
   claimNPC(npc) {

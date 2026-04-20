@@ -1,17 +1,8 @@
 import { TILE, MAP_COLS, MAP_ROWS } from "../main.js";
+import { mulberry32 } from "../systems/Seed.js";
 
 // Simple procedural forest map: grass base, scattered hills, a small pond,
 // trees, rocks and resource nodes. Returns a data object the GameScene renders.
-
-function mulberry32(seed) {
-  return () => {
-    seed = (seed + 0x6d2b79f5) | 0;
-    let t = seed;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 export function buildForestMap(seed = 42) {
   const r = mulberry32(seed);
